@@ -8,9 +8,11 @@ private
 
 public :: epoch, epochdelta, new_epochdelta, new_epoch, new_epoch_calendar, juliandate, jd2000, &
     operator (+), operator (-), seconds_per_day, mjd2000, days, seconds, calendardate, isostring, &
-    datetime, to_datetime
+    datetime, to_datetime, days_per_century, seconds_per_century, centuries
 
 real(dp), parameter :: seconds_per_day = 86400._dp
+real(dp), parameter :: days_per_century = 36525._dp
+real(dp), parameter :: seconds_per_century = days_per_century * seconds_per_day
 real(dp), parameter :: mjd2000 = 2451544.5
 
 type datetime
@@ -50,6 +52,16 @@ interface isostring
     module procedure isostring_epoch
 end interface isostring
 
+interface seconds
+    module procedure seconds_epochdelta
+    module procedure seconds_epoch
+end interface seconds
+
+interface days
+    module procedure days_epochdelta
+    module procedure days_epoch
+end interface days
+
 contains
 
 pure function new_epoch_init(jd, jd1) result(ep)
@@ -87,6 +99,45 @@ pure function new_epoch_calendar(year, month, day, hour, minute, seconds) result
     ep%jd = jd(1)
     ep%jd1 = jd(2)
 end function new_epoch_calendar
+
+pure function centuries(ep, base) result(c)
+    type(epoch), intent(in) :: ep
+    real(dp), intent(in), optional :: base
+
+    real(dp) :: c
+    real(dp) :: base_
+
+    base_ = mjd2000
+    if (present(base)) base_ = base
+
+    c = (ep%jd + ep%jd1 - base_) / days_per_century
+end function centuries
+
+pure function days_epoch(ep, base) result(d)
+    type(epoch), intent(in) :: ep
+    real(dp), intent(in), optional :: base
+
+    real(dp) :: d
+    real(dp) :: base_
+
+    base_ = mjd2000
+    if (present(base)) base_ = base
+
+    d = ep%jd + ep%jd1 - base_
+end function days_epoch
+
+pure function seconds_epoch(ep, base) result(s)
+    type(epoch), intent(in) :: ep
+    real(dp), intent(in), optional :: base
+
+    real(dp) :: s
+    real(dp) :: base_
+
+    base_ = mjd2000
+    if (present(base)) base_ = base
+
+    s = (ep%jd + ep%jd1 - base_) * seconds_per_day
+end function seconds_epoch
 
 pure function jd2000(ep) result(jd)
     type(epoch), intent(in) :: ep
@@ -126,21 +177,21 @@ pure function subtract_epochs(ep1, ep2) result(epd)
     epd%deltajd1 = ep1%jd1 - ep2%jd1
 end function subtract_epochs
 
-pure function days(epd) result(d)
+pure function days_epochdelta(epd) result(d)
     type(epochdelta), intent(in) :: epd
 
     real(dp) :: d
 
     d = epd%deltajd + epd%deltajd1
-end function days
+end function days_epochdelta
 
-pure function seconds(epd) result(s)
+pure function seconds_epochdelta(epd) result(s)
     type(epochdelta), intent(in) :: epd
 
     real(dp) :: s
 
     s = (epd%deltajd + epd%deltajd1) * seconds_per_day
-end function seconds
+end function seconds_epochdelta
 
 pure function juliandate(year, month, day, hour, minute, seconds) result(jd)
     integer, intent(in) :: year
