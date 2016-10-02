@@ -8,11 +8,11 @@ implicit none
 private
 
 public :: pih, pi, twopi, deg, rad,&
-    eps, cross, unitmat, ang2pi,&
+    eps, cross, unitmat, mod2pi,&
     vecang, polcart, cartpol, norm,&
     getsign, binsearch,&
-    interp, rot, rotd, findroot, isclose,&
-    issorted, greatcircle
+    interp, findroot, isclose,&
+    issorted, greatcircle, deg2rad, rad2deg
 
 ! Constants: Mathematical constants
 !
@@ -30,6 +30,20 @@ real(dp), parameter :: deg = 180._dp / pi
 real(dp), parameter :: rad = pi / 180._dp
 
 contains
+
+elemental function deg2rad(d) result(r)
+    real(dp), intent(in) :: d
+    real(dp) :: r
+
+    r = d * rad
+end function deg2rad
+
+elemental function rad2deg(r) result(d)
+    real(dp), intent(in) :: r
+    real(dp) :: d
+
+    d = r * deg
+end function rad2deg
 
 ! Function: is_close
 !
@@ -101,7 +115,7 @@ pure function unitmat(n) result(unity)
     end do
 end function unitmat
 
-! Function: ang2pi
+! Function: mod2pi
 !   Truncates angle to be within 0 and 2*pi.
 !
 ! Parameters:
@@ -109,14 +123,14 @@ end function unitmat
 !
 ! Returns:
 !   ang - Truncated angle in radians
-pure function ang2pi(angin) result(ang)
+pure function mod2pi(angin) result(ang)
     real(dp), intent(in) :: angin
     real(dp) :: ang
     ang = mod(angin, twopi)
     if (ang < 0._dp) then
         ang = ang + twopi
     end if
-end function ang2pi
+end function mod2pi
 
 ! Function: vecang
 !   Calculates the angle between two vectors.
@@ -418,91 +432,6 @@ function interp(x, xt, yt, kind, left, right, err) result(y)
         y = y0 + (y1 - y0)/(x1 - x0) * (x - x0)
     end select
 end function interp
-
-! Function: rot
-!   Generates a rotation matrix.
-!
-! Parameters:
-!   ang - Rotation angle in radians.
-!   axis - Rotation axis (1,2,3).
-!
-! Returns:
-!   m - 3x3 Rotation matrix
-pure function rot(ang, axis) result(m)
-    real(dp), intent(in) :: ang
-    integer, intent(in) :: axis
-    real(dp), dimension(3,3) :: m
-
-    real(dp) :: sina
-    real(dp) :: cosa
-
-    m = 0._dp
-    sina = sin(ang)
-    cosa = cos(ang)
-
-    select case (axis)
-    case (1)
-        m(1,1) = 1._dp
-        m(2,2) = cosa
-        m(2,3) = -sina
-        m(3,2) = sina
-        m(3,3) = cosa
-    case (2)
-        m(1,1) = cosa
-        m(1,3) = -sina
-        m(2,2) = 1._dp
-        m(3,1) = sina
-        m(3,3) = cosa
-    case(3)
-        m(1,1) = cosa
-        m(1,2) = sina
-        m(2,1) = -sina
-        m(2,2) = cosa
-        m(3,3) = 1._dp
-    end select
-end function rot
-
-! Function: rotd
-!   Generates a derivative rotation matrix.
-!
-! Parameters:
-!   ang - Rotation angle in radians.
-!   dang - Rotational velocity in radians/sec.
-!   axis - Rotation axis (1,2,3).
-!
-! Returns:
-!   m - 3x3 Derivative rotation matrix
-pure function rotd(ang, dang, axis) result(m)
-    real(dp), intent(in) :: ang
-    real(dp), intent(in) :: dang
-    integer, intent(in) :: axis
-    real(dp), dimension(3,3) :: m
-
-    real(dp) :: sina
-    real(dp) :: cosa
-
-    m = 0._dp
-    sina = sin(ang)
-    cosa = cos(ang)
-
-    select case (axis)
-    case (1)
-        m(2,2) = -dang * sina
-        m(2,3) = dang * cosa
-        m(3,2) = -dang * cosa
-        m(3,3) = -dang * sina
-    case (2)
-        m(1,1) = -dang * sina
-        m(1,3) = -dang * cosa
-        m(3,1) = dang * cosa
-        m(3,3) = -dang * sina
-    case (3)
-        m(1,1) = -dang * sina
-        m(1,2) = dang * cosa
-        m(2,1) = -dang * cosa
-        m(2,2) = -dang * sina
-    end select
-end function rotd
 
 ! Function: findroot
 !   Find the root of a function within a given interval using Brent's method.
