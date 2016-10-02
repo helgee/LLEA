@@ -25,9 +25,18 @@ end type exception
 
 private
 
-public :: exception, error, catch, raise, iserror
+public :: exception, error, catch, raise, iserror, reset
 
 contains
+
+subroutine reset(err)
+    type(exception), intent(inout) :: err
+
+    err%message = ""
+    deallocate(err%func)
+    deallocate(err%file)
+    deallocate(err%line)
+end subroutine reset
 
 logical function iserror(err)
     type(exception), intent(in) :: err
