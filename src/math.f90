@@ -29,6 +29,17 @@ real(dp), parameter :: twopi = 2*pi
 real(dp), parameter :: deg = 180._dp / pi
 real(dp), parameter :: rad = pi / 180._dp
 
+interface isapprox
+    module procedure isapprox_scalar
+    module procedure isapprox_vector
+    module procedure isapprox_matrix
+end interface isapprox
+
+interface norm
+    module procedure norm_vector
+    module procedure norm_matrix
+end interface norm
+
 contains
 
 elemental function deg2rad(d) result(r)
@@ -58,12 +69,13 @@ end function rad2deg
 ! Returns:
 !   True if the numbers are approximately equal.
 
-logical pure function isapprox(x, y, rtol, atol)
+pure function isapprox_scalar(x, y, rtol, atol) result(res)
     real(dp), intent(in) :: x
     real(dp), intent(in) :: y
     real(dp), intent(in), optional :: rtol
     real(dp), intent(in), optional :: atol
 
+    logical :: res
     real(dp) :: rtol_
     real(dp) :: atol_
 
@@ -72,8 +84,44 @@ logical pure function isapprox(x, y, rtol, atol)
     atol_ = 0._dp
     if (present(atol)) atol_ = atol
 
-    isapprox = abs(x - y) <= atol_ + rtol_ * max(abs(x), abs(y))
-end function isapprox
+    res = abs(x - y) <= atol_ + rtol_ * max(abs(x), abs(y))
+end function isapprox_scalar
+
+pure function isapprox_vector(x, y, rtol, atol) result(res)
+    real(dp), dimension(:), intent(in) :: x
+    real(dp), dimension(:), intent(in) :: y
+    real(dp), intent(in), optional :: rtol
+    real(dp), intent(in), optional :: atol
+
+    logical :: res
+    real(dp) :: rtol_
+    real(dp) :: atol_
+
+    rtol_ = sqrt(eps)
+    if (present(rtol)) rtol_ = rtol
+    atol_ = 0._dp
+    if (present(atol)) atol_ = atol
+
+    res = norm(x - y) <= atol_ + rtol_ * max(norm(x), norm(y))
+end function isapprox_vector
+
+pure function isapprox_matrix(x, y, rtol, atol) result(res)
+    real(dp), dimension(:,:), intent(in) :: x
+    real(dp), dimension(:,:), intent(in) :: y
+    real(dp), intent(in), optional :: rtol
+    real(dp), intent(in), optional :: atol
+
+    logical :: res
+    real(dp) :: rtol_
+    real(dp) :: atol_
+
+    rtol_ = sqrt(eps)
+    if (present(rtol)) rtol_ = rtol
+    atol_ = 0._dp
+    if (present(atol)) atol_ = atol
+
+    res = norm(x - y) <= atol_ + rtol_ * max(norm(x), norm(y))
+end function isapprox_matrix
 
 ! Function: cross
 !   Calculates cross product.
@@ -211,12 +259,19 @@ end function cartpol
 !
 ! Returns:
 !   l - Vector norm
-pure function norm(x) result(l)
-    real(dp), intent(in) :: x(:)
+pure function norm_vector(x) result(l)
+    real(dp), dimension(:), intent(in) :: x
     real(dp) :: l
 
     l = sqrt(sum(x**2))
-end function norm
+end function norm_vector
+
+pure function norm_matrix(x) result(l)
+    real(dp), dimension(:,:), intent(in) :: x
+    real(dp) :: l
+
+    l = sqrt(sum(x**2))
+end function norm_matrix
 
 ! Function: getsign
 !   Calculates sign

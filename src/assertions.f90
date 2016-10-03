@@ -229,42 +229,57 @@ subroutine assert_almost_equal_scalar(a, b, line, rtol, atol)
     end if
 end subroutine assert_almost_equal_scalar
 
-subroutine assert_almost_equal_vector(a, b, line, rtol, atol)
+subroutine assert_almost_equal_vector(a, b, line, rtol, atol, elementwise)
     real(dp), dimension(:), intent(in) :: a
     real(dp), dimension(:), intent(in) :: b
     integer, intent(in) :: line
     real(dp), intent(in), optional :: rtol
     real(dp), intent(in), optional :: atol
+    logical, intent(in), optional :: elementwise
 
     real(dp) :: atol_
     real(dp) :: rtol_
+    logical :: elementwise_
     integer :: i
 
     rtol_ = sqrt(eps)
     if (present(rtol)) rtol_ = rtol
     atol_ = 0._dp
     if (present(atol)) atol_ = atol
+    elementwise_ = .false.
+    if (present(elementwise)) elementwise_ = elementwise
 
     if (size(a) /= size(b)) then
         write(error_unit,*) "size(a)=",size(a),"!= size(b)=",size(b)
         write(error_unit,*) "Line:", line
         call stop_error("Assertion failed.")
     end if
-    do i=1,size(a)
-        call assert_almost_equal_scalar(a(i), b(i), line, rtol_, atol_)
-    end do
+
+    if (.not.elementwise_) then
+        if (.not.isapprox(a, b, rtol_, atol_)) then
+            write(error_unit,*) "norm(a - b) > tolerance"
+            write(error_unit,*) "Line:", line
+            call stop_error("Assertion failed.")
+        end if
+    else
+        do i=1,size(a)
+            call assert_almost_equal_scalar(a(i), b(i), line, rtol_, atol_)
+        end do
+    end if
 end subroutine assert_almost_equal_vector
 
-subroutine assert_almost_equal_matrix(a, b, line, atol, rtol)
+subroutine assert_almost_equal_matrix(a, b, line, atol, rtol, elementwise)
     real(dp), dimension(:,:), intent(in) :: a
     real(dp), dimension(:,:), intent(in) :: b
     integer, intent(in) :: line
     real(dp), intent(in), optional :: atol
     real(dp), intent(in), optional :: rtol
+    logical, intent(in), optional :: elementwise
     integer, dimension(2) :: shp
 
     real(dp) :: atol_
     real(dp) :: rtol_
+    logical :: elementwise_
     integer :: i
     integer :: j
 
@@ -272,18 +287,29 @@ subroutine assert_almost_equal_matrix(a, b, line, atol, rtol)
     if (present(atol)) atol_ = atol
     rtol_ = sqrt(eps)
     if (present(rtol)) rtol_ = rtol
+    elementwise_ = .false.
+    if (present(elementwise)) elementwise_ = elementwise
 
     if (size(a) /= size(b)) then
         write(error_unit,*) "size(a)=",size(a),"!= size(b)=",size(b)
         write(error_unit,*) "Line:", line
         call stop_error("Assertion failed.")
     end if
-    shp = shape(a)
-    do i=1,shp(2)
-        do j=1,shp(1)
-            call assert_almost_equal_scalar(a(j, i), b(j, i), line, atol_, rtol_)
+
+    if (.not.elementwise_) then
+        if (.not.isapprox(a, b, rtol_, atol_)) then
+            write(error_unit,*) "norm(a - b) > tolerance"
+            write(error_unit,*) "Line:", line
+            call stop_error("Assertion failed.")
+        end if
+    else
+        shp = shape(a)
+        do i=1,shp(2)
+            do j=1,shp(1)
+                call assert_almost_equal_scalar(a(j, i), b(j, i), line, atol_, rtol_)
+            end do
         end do
-    end do
+    end if
 end subroutine assert_almost_equal_matrix
 
 end module assertions
