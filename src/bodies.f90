@@ -15,7 +15,7 @@ public :: body, rightascension, rightascensionrate, declination, declinationrate
 type body
     real(dp) :: mu = 0._dp
     real(dp) :: j2 = 0._dp
-    character(len=6) :: bodytype = ""
+    character(len=10) :: bodytype = ""
     character(len=7) :: parent = ""
     character(len=7) :: name = ""
     real(dp), dimension(3) :: radii = 0._dp
