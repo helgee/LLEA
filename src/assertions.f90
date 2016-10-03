@@ -4,7 +4,7 @@ use iso_fortran_env, only: error_unit
 use types, only: dp
 use exceptions, only: exception
 use util, only: stop_error
-use math, only: eps
+use math, only: isapprox, eps
 
 implicit none
 
@@ -30,6 +30,7 @@ end interface
 interface assert_almost_equal
     module procedure assert_almost_equal_scalar
     module procedure assert_almost_equal_vector
+    module procedure assert_almost_equal_matrix
 end interface
 
 interface assert
@@ -206,60 +207,43 @@ subroutine assert_false_vector(a, line)
     end if
 end subroutine assert_false_vector
 
-subroutine assert_almost_equal_scalar(a, b, line, eps)
-    ! Source: http://floating-point-gui.de/errors/comparison/
+subroutine assert_almost_equal_scalar(a, b, line, rtol, atol)
     real(dp), intent(in) :: a
     real(dp), intent(in) :: b
     integer, intent(in) :: line
-    real(dp), intent(in), optional :: eps
-    real(dp) :: eps_
-    real(dp) :: abs_a
-    real(dp) :: abs_b
-    real(dp) :: diff
-    real(dp) :: min_normal
+    real(dp), intent(in), optional :: rtol
+    real(dp), intent(in), optional :: atol
 
-    eps_ = sqrt(epsilon(0._dp))
-    if (present(eps)) then
-        eps_ = eps
-    end if
+    real(dp) :: atol_
+    real(dp) :: rtol_
 
-    min_normal = tiny(0._dp)
-    abs_a = abs(a)
-    abs_b = abs(b)
-    diff = abs(a-b)
-    if (a == b) then
-        return
-    ! TODO: This does not seem to work.
-    ! else if ((a == 0._dp) .or. (b == 0._dp) .or. (diff < min_normal)) then
-    !     if (diff > (eps_*min_normal)) then
-    !         write(error_unit,*) "a=",a,"!~= b=",b
-    !         call stop_error("Assertion failed.")
-    !     end if
-    else
-        if (diff > eps_) then
-            write(error_unit,*) "abs(a=",abs_a,"-b=",b,") > eps=",eps_
-            write(error_unit,*) "Line:", line
-            call stop_error("Assertion failed.")
-        end if
-        ! if ((diff / (abs_a + abs_b)) > eps_) then
-        !     write(error_unit,*) "diff=",diff,"/(abs(a)=",abs_a,"+abs(b)=",abs_b,") > eps=",eps_
-        !     call stop_error("Assertion failed.")
-        ! end if
+    rtol_ = sqrt(eps)
+    if (present(rtol)) rtol_ = rtol
+    atol_ = 0._dp
+    if (present(atol)) atol_ = atol
+
+    if (.not.isapprox(a, b, rtol_, atol_)) then
+        write(error_unit,*) "abs(a=",a,"-b=",b,") > tolerance"
+        write(error_unit,*) "Line:", line
+        call stop_error("Assertion failed.")
     end if
 end subroutine assert_almost_equal_scalar
 
-subroutine assert_almost_equal_vector(a, b, line, eps)
+subroutine assert_almost_equal_vector(a, b, line, rtol, atol)
     real(dp), dimension(:), intent(in) :: a
     real(dp), dimension(:), intent(in) :: b
     integer, intent(in) :: line
-    real(dp), intent(in), optional :: eps
-    integer :: i
-    real(dp) :: eps_
+    real(dp), intent(in), optional :: rtol
+    real(dp), intent(in), optional :: atol
 
-    eps_ = sqrt(epsilon(0._dp))
-    if (present(eps)) then
-        eps_ = eps
-    end if
+    real(dp) :: atol_
+    real(dp) :: rtol_
+    integer :: i
+
+    rtol_ = sqrt(eps)
+    if (present(rtol)) rtol_ = rtol
+    atol_ = 0._dp
+    if (present(atol)) atol_ = atol
 
     if (size(a) /= size(b)) then
         write(error_unit,*) "size(a)=",size(a),"!= size(b)=",size(b)
@@ -267,8 +251,39 @@ subroutine assert_almost_equal_vector(a, b, line, eps)
         call stop_error("Assertion failed.")
     end if
     do i=1,size(a)
-        call assert_almost_equal_scalar(a(i), b(i), line, eps_)
+        call assert_almost_equal_scalar(a(i), b(i), line, rtol_, atol_)
     end do
 end subroutine assert_almost_equal_vector
+
+subroutine assert_almost_equal_matrix(a, b, line, atol, rtol)
+    real(dp), dimension(:,:), intent(in) :: a
+    real(dp), dimension(:,:), intent(in) :: b
+    integer, intent(in) :: line
+    real(dp), intent(in), optional :: atol
+    real(dp), intent(in), optional :: rtol
+    integer, dimension(2) :: shp
+
+    real(dp) :: atol_
+    real(dp) :: rtol_
+    integer :: i
+    integer :: j
+
+    atol_ = 0._dp
+    if (present(atol)) atol_ = atol
+    rtol_ = sqrt(eps)
+    if (present(rtol)) rtol_ = rtol
+
+    if (size(a) /= size(b)) then
+        write(error_unit,*) "size(a)=",size(a),"!= size(b)=",size(b)
+        write(error_unit,*) "Line:", line
+        call stop_error("Assertion failed.")
+    end if
+    shp = shape(a)
+    do i=1,shp(2)
+        do j=1,shp(1)
+            call assert_almost_equal_scalar(a(j, i), b(j, i), line, atol_, rtol_)
+        end do
+    end do
+end subroutine assert_almost_equal_matrix
 
 end module assertions

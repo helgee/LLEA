@@ -11,7 +11,7 @@ public :: pih, pi, twopi, deg, rad,&
     eps, cross, unitmat, mod2pi,&
     vecang, polcart, cartpol, norm,&
     getsign, binsearch,&
-    interp, findroot, isclose,&
+    interp, findroot, isapprox,&
     issorted, greatcircle, deg2rad, rad2deg
 
 ! Constants: Mathematical constants
@@ -45,7 +45,7 @@ elemental function rad2deg(r) result(d)
     d = r * deg
 end function rad2deg
 
-! Function: is_close
+! Function: isapprox
 !
 ! Compares two double precision numbers.
 !
@@ -58,26 +58,22 @@ end function rad2deg
 ! Returns:
 !   True if the numbers are approximately equal.
 
-logical function isclose(a, b, rtol, atol)
-    real(dp), intent(in) :: a
-    real(dp), intent(in) :: b
+logical pure function isapprox(x, y, rtol, atol)
+    real(dp), intent(in) :: x
+    real(dp), intent(in) :: y
     real(dp), intent(in), optional :: rtol
     real(dp), intent(in), optional :: atol
 
     real(dp) :: rtol_
     real(dp) :: atol_
-    real(dp) :: diff
 
-    rtol_ = 1e-9_dp
+    rtol_ = sqrt(eps)
     if (present(rtol)) rtol_ = rtol
     atol_ = 0._dp
     if (present(atol)) atol_ = atol
 
-    diff = abs(b - a)
-
-    isclose = (((diff <= abs(rtol_*b)).or.(diff <= abs(rtol_*a)))&
-        .or.(diff <= atol_))
-end function isclose
+    isapprox = abs(x - y) <= atol_ + rtol_ * max(abs(x), abs(y))
+end function isapprox
 
 ! Function: cross
 !   Calculates cross product.
@@ -234,7 +230,7 @@ pure function getsign(x) result(l)
     real(dp), intent(in) :: x
     real(dp) :: l
 
-    if (x == 0) then
+    if (isapprox(x, 0._dp)) then
         l = 0
     else
         l = x/abs(x)
@@ -265,6 +261,11 @@ function binsearch(val, x, desc, err) result(ind)
     logical :: desc_
     type(exception) :: err_
 
+    n = size(x)
+    imin = 1
+    imax = n
+    ind = 0
+
     desc_ = .false.
     if (present(desc)) desc_ = desc
 
@@ -278,10 +279,6 @@ function binsearch(val, x, desc, err) result(ind)
             call raise(err_)
         end if
     end if
-
-    n = size(x)
-    imin = 1
-    imax = n
 
     if (desc_) then
         if (val < x(n)) then
@@ -525,12 +522,12 @@ function findroot(fun, xa, xb, rpar, ipar, xtol, rtol, max_iter, err)&
         end if
     end if
 
-    if (fpre == 0._dp) then
+    if (isapprox(fpre, 0._dp)) then
         root = xpre
         return
     end if
 
-    if (fcur == 0._dp) then
+    if (isapprox(fcur, 0._dp)) then
         root = xcur
         return
     end if
@@ -555,13 +552,13 @@ function findroot(fun, xa, xb, rpar, ipar, xtol, rtol, max_iter, err)&
         tol = xtol_ + rtol_ * abs(xcur)
         sbis = (xblk - xcur) / 2._dp
 
-        if ((fcur == 0._dp).or.(abs(sbis) < tol)) then
+        if (isapprox(fcur, 0._dp).or.(abs(sbis) < tol)) then
             root = xcur
             return
         end if
 
         if ((abs(spre) > tol).and.(abs(fcur) < abs(fpre))) then
-            if (xpre == xblk) then
+            if (isapprox(xpre, xblk)) then
                 stry = -fcur*(xcur - xpre)/(fcur - fpre)
             else
                 dpre = (fpre - fcur)/(xpre - xcur)
