@@ -1,10 +1,11 @@
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/include)
 
 if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
+    set(f90flags  "-cpp -fbacktrace -ffree-line-length-none")
     if(WIN32)
-        set(f90flags  "-cpp -fbacktrace -D_WIN32")
+        set(f90flags  "${f90flags} -D_WIN32")
     else()
-        set(f90flags  "-cpp -fbacktrace -D_unix_")
+        set(f90flags  "${f90flags} -D_unix_")
     endif()
     set(CMAKE_Fortran_FLAGS_DEBUG "-g -Og -Wall -Wextra -pedantic -fcheck=all -ffpe-trap=invalid,overflow,underflow,zero ${f90flags}")
     set(CMAKE_Fortran_FLAGS_RELEASE "-fopenmp -O3 ${f90flags}")
