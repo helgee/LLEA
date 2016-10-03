@@ -17,3 +17,7 @@ add_test(TEST_MATH test_math)
 add_executable(test_rotations test/test_rotations.f90)
 target_link_libraries(test_rotations llea)
 add_test(TEST_ROTATIONS test_rotations)
+
+add_executable(test_states test/test_states.f90)
+target_link_libraries(test_states llea)
+add_test(TEST_STATES test_states)

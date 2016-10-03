@@ -3,23 +3,26 @@ module bodies
 use types, only: dp
 use epochs, only: epoch, seconds_per_century, seconds, seconds_per_day
 use math, only: mod2pi, pih
+use rotations, only: rotationmatrix, ratematrix
 
 implicit none
 
 private
 
-public :: body, rightascension, rightascensionrate, declination, declinationrate, rotationangle, rotationrate
+public :: body, rightascension, rightascensionrate, declination, declinationrate, rotationangle, rotationrate, &
+    iaumatrix
 
 type body
-    real(dp) :: mu
-    real(dp) :: j2
-    character(len=6) :: bodytype
-    character(len=7) :: parent
-    real(dp), dimension(3) :: radii
-    integer :: id
-    real(dp), dimension(3) :: ra
-    real(dp), dimension(3) :: dec
-    real(dp), dimension(3) :: ww
+    real(dp) :: mu = 0._dp
+    real(dp) :: j2 = 0._dp
+    character(len=6) :: bodytype = ""
+    character(len=7) :: parent = ""
+    character(len=7) :: name = ""
+    real(dp), dimension(3) :: radii = 0._dp
+    integer :: id = -99999
+    real(dp), dimension(3) :: ra = 0._dp
+    real(dp), dimension(3) :: dec = 0._dp
+    real(dp), dimension(3) :: ww = 0._dp
     real(dp), dimension(:), allocatable :: a
     real(dp), dimension(:), allocatable :: d
     real(dp), dimension(:), allocatable :: w

@@ -53,9 +53,9 @@ epd = new_epochdelta(days=-1.5_dp)
 call assert_equal(isostring(ep2+epd), "1999-12-31T00:00:00.000", __LINE__)
 
 ! centuries and seconds
-call assert_almost_equal(seconds(ep1), 86400._dp, __LINE__)
-call assert_almost_equal(days(ep1), 1._dp, __LINE__)
-ep2 = new_epoch(2100, 1, 1)
+call assert_almost_equal(seconds(ep1), 43200._dp, __LINE__)
+call assert_almost_equal(days(ep1), 0.5_dp, __LINE__)
+ep2 = new_epoch(2100, 1, 1, 12)
 call assert_almost_equal(centuries(ep2), 1._dp, __LINE__)
 
 end program testepochs

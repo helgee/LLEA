@@ -133,14 +133,14 @@ function rotationmatrix_single(axis, angle, err) result(m)
     case ("1", "x", "X")
         m(1,1) = 1._dp
         m(2,2) = cosa
-        m(2,3) = -sina
-        m(3,2) = sina
+        m(2,3) = sina
+        m(3,2) = -sina
         m(3,3) = cosa
     case ("2", "y", "Y")
         m(1,1) = cosa
-        m(1,3) = -sina
+        m(1,3) = sina
         m(2,2) = 1._dp
-        m(3,1) = sina
+        m(3,1) = -sina
         m(3,3) = cosa
     case("3", "z", "Z")
         m(1,1) = cosa
@@ -193,8 +193,8 @@ function ratematrix_single(axis, angle, rate, err) result(m)
         m(3,3) = -rate * sina
     case ("2", "y", "Y")
         m(1,1) = -rate * sina
-        m(1,3) = -rate * cosa
-        m(3,1) = rate * cosa
+        m(1,3) = rate * cosa
+        m(3,1) = -rate * cosa
         m(3,3) = -rate * sina
     case("3", "z", "Z")
         m(1,1) = -rate * sina

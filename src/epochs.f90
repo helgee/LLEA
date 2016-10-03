@@ -13,7 +13,8 @@ public :: epoch, epochdelta, new_epochdelta, new_epoch, new_epoch_calendar, juli
 real(dp), parameter :: seconds_per_day = 86400._dp
 real(dp), parameter :: days_per_century = 36525._dp
 real(dp), parameter :: seconds_per_century = days_per_century * seconds_per_day
-real(dp), parameter :: mjd2000 = 2451544.5
+real(dp), parameter :: mjd2000 = 2451544.5_dp
+real(dp), parameter :: j2000 = 2451545._dp
 
 type datetime
     integer :: year
@@ -107,7 +108,7 @@ pure function centuries(ep, base) result(c)
     real(dp) :: c
     real(dp) :: base_
 
-    base_ = mjd2000
+    base_ = j2000
     if (present(base)) base_ = base
 
     c = (ep%jd + ep%jd1 - base_) / days_per_century
@@ -120,7 +121,7 @@ pure function days_epoch(ep, base) result(d)
     real(dp) :: d
     real(dp) :: base_
 
-    base_ = mjd2000
+    base_ = j2000
     if (present(base)) base_ = base
 
     d = ep%jd + ep%jd1 - base_
@@ -133,7 +134,7 @@ pure function seconds_epoch(ep, base) result(s)
     real(dp) :: s
     real(dp) :: base_
 
-    base_ = mjd2000
+    base_ = j2000
     if (present(base)) base_ = base
 
     s = (ep%jd + ep%jd1 - base_) * seconds_per_day
