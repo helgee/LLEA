@@ -22,7 +22,7 @@ type(body) :: moon
 
 contains
 
-subroutine load_constants
+subroutine init_constants
     mercury%name = "Mercury"
     mercury%parent = "Sun"
     mercury%bodytype = "Planet"
@@ -202,6 +202,6 @@ subroutine load_constants
     moon%theta1 = deg2rad([-0.0529921_dp, -0.1059842_dp, 13.0120009_dp, &
         13.3407154_dp, 0.9856003_dp, 26.4057084_dp, 13.0649930_dp, 0.3287146_dp, &
         1.7484877_dp, -0.1589763_dp, 0.0036096_dp, 0.1643573_dp, 12.9590088_dp]) * days_per_century
-end subroutine load_constants
+end subroutine init_constants
 
 end module constants

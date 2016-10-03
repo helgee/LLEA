@@ -14,7 +14,7 @@ real(dp), dimension(3,3) :: m
 real(dp), dimension(3,3) :: dm
 
 ep = new_epoch(2000, 1, 1, 12) + new_epochdelta(seconds=1000._dp)
-call load_constants
+call init_constants
 
 ! Reference data from WebGeocalc (http://wgc.jpl.nasa.gov/)
 ref = transpose(reshape([ &

@@ -14,4 +14,6 @@ type state
     type(body) :: center
 end type state
 
+contains
+
 end module states
