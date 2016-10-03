@@ -1,0 +1,13 @@
+machine:
+  services:
+    - docker
+
+dependencies:
+  override:
+    - docker info
+    - docker build --rm=false -t kosmosml/llea .
+
+test:
+  override:
+    - docker run kosmosml/llea make -C /llea/build test
+    - docker run kosmosml/llea make -C /llea/debug test
