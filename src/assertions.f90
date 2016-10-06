@@ -257,6 +257,8 @@ subroutine assert_almost_equal_vector(a, b, line, rtol, atol, elementwise)
 
     if (.not.elementwise_) then
         if (.not.isapprox(a, b, rtol_, atol_)) then
+            write(error_unit,*) "a = ", a
+            write(error_unit,*) "b = ", b
             write(error_unit,*) "norm(a - b) > tolerance"
             write(error_unit,*) "Line:", line
             call stop_error("Assertion failed.")
@@ -298,6 +300,8 @@ subroutine assert_almost_equal_matrix(a, b, line, atol, rtol, elementwise)
 
     if (.not.elementwise_) then
         if (.not.isapprox(a, b, rtol_, atol_)) then
+            write(error_unit,*) "a = ", a
+            write(error_unit,*) "b = ", b
             write(error_unit,*) "norm(a - b) > tolerance"
             write(error_unit,*) "Line:", line
             call stop_error("Assertion failed.")
