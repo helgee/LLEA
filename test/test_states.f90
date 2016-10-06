@@ -4,7 +4,9 @@ use assertions
 use bodies
 use constants
 use epochs
+use math, only: eps
 use types, only: dp
+use states
 
 implicit none
 
@@ -12,6 +14,9 @@ type(epoch) :: ep
 real(dp), dimension(6,6) :: ref
 real(dp), dimension(3,3) :: m
 real(dp), dimension(3,3) :: dm
+real(dp), dimension(6) :: refvec = [1._dp, 2._dp, 3._dp, 4._dp, 5._dp, 6._dp]
+type(state) :: s
+type(state) :: s1
 
 ep = new_epoch(2000, 1, 1, 12) + new_epochdelta(seconds=1000._dp)
 call init_constants
@@ -394,5 +399,12 @@ ref = transpose(reshape([ &
 call iaumatrix(moon, ep, m, dm)
 call assert_almost_equal(m, ref(1:3, 1:3), __LINE__)
 call assert_almost_equal(dm, ref(4:6, 1:3), __LINE__, atol=1e-8_dp)
+
+s = state(ep, [1000._dp, 1000._dp, 1000._dp, 1._dp, 1._dp, 1._dp], "GCRF", moon)
+refvec = [1614.8139211605944_dp,406.5549322139076_dp,476.5386522817342_dp,1.6158956790362593_dp,0.4022560154092351_dp,0.4765405580099757_dp]
+s1 = rotate(s, "IAU")
+call assert_almost_equal(s1%rv, refvec, __LINE__)
+call rotate_inplace(s1, "GCRF")
+call assert_almost_equal(s1%rv, s%rv, __LINE__)
 
 end program teststates

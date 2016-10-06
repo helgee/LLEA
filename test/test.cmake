@@ -18,6 +18,10 @@ add_executable(test_rotations test/test_rotations.f90)
 target_link_libraries(test_rotations llea)
 add_test(TEST_ROTATIONS test_rotations)
 
+add_executable(test_iau test/test_iau.f90)
+target_link_libraries(test_iau llea)
+add_test(TEST_IAU test_iau)
+
 add_executable(test_states test/test_states.f90)
 target_link_libraries(test_states llea)
 add_test(TEST_STATES test_states)
