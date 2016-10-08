@@ -6,6 +6,18 @@ add_executable(test_exceptions test/test_exceptions.f90)
 target_link_libraries(test_exceptions llea)
 add_test(TEST_EXCEPTIONS test_exceptions)
 
+file(DOWNLOAD "http://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de430.bsp"
+    "${PROJECT_BINARY_DIR}/data/de430.bsp" SHOW_PROGRESS)
+file(DOWNLOAD "http://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/a_old_versions/de405.bsp"
+    "${PROJECT_BINARY_DIR}/data/de405.bsp" SHOW_PROGRESS)
+file(DOWNLOAD "ftp://ssd.jpl.nasa.gov/pub/eph/planets/test-data/430/testpo.430"
+    "${PROJECT_BINARY_DIR}/data/testpo.430" SHOW_PROGRESS)
+file(DOWNLOAD "ftp://ssd.jpl.nasa.gov/pub/eph/planets/test-data/testpo.405"
+    "${PROJECT_BINARY_DIR}/data/testpo.405" SHOW_PROGRESS)
+add_executable(test_ephemeris test/test_ephemeris.f90)
+target_link_libraries(test_ephemeris llea)
+add_test(TEST_EPHEMERIS test_ephemeris)
+
 add_executable(test_epochs test/test_epochs.f90)
 target_link_libraries(test_epochs llea)
 add_test(TEST_EPOCHS test_epochs)
