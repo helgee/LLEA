@@ -6,7 +6,7 @@ implicit none
 
 private
 
-public :: epoch, epochdelta, new_epochdelta, new_epoch, new_epoch_calendar, juliandate, jd2000, &
+public :: epoch, epochdelta, juliandate, jd2000, &
     operator (+), operator (-), seconds_per_day, mjd2000, days, seconds, calendardate, isostring, &
     datetime, to_datetime, days_per_century, seconds_per_century, centuries
 
@@ -30,10 +30,14 @@ type epoch
     real(dp) :: jd1 = 0._dp
 end type epoch
 
-interface new_epoch
+interface epoch
     module procedure new_epoch_init
     module procedure new_epoch_calendar
-end interface new_epoch
+end interface epoch
+
+interface epochdelta
+    module procedure new_epochdelta
+end interface epochdelta
 
 type epochdelta
     real(dp) :: deltajd = 0._dp

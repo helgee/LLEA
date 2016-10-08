@@ -73,7 +73,6 @@ subroutine rotate_inplace(s, to, err)
     s%frame = to
 end subroutine rotate_inplace
 
-! TODO: Port Julia implementation
 function rotate(s, to, err) result(s1)
     type(state), intent(in) :: s
     character(len=*), intent(in) :: to
@@ -94,6 +93,7 @@ function rotate(s, to, err) result(s1)
     end if
 end function rotate
 
+! TODO: Port Julia implementation
 pure function keplerian_vectors(r, v, mu) result(ele)
     double precision, dimension(:), intent(in) :: r
     double precision, dimension(:), intent(in) :: v

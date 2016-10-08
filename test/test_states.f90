@@ -18,7 +18,7 @@ real(dp), dimension(6) :: refvec = [1._dp, 2._dp, 3._dp, 4._dp, 5._dp, 6._dp]
 type(state) :: s
 type(state) :: s1
 
-ep = new_epoch(2000, 1, 1, 12) + new_epochdelta(seconds=1000._dp)
+ep = epoch(2000, 1, 1, 12) + epochdelta(seconds=1000._dp)
 call init_constants
 
 ! Reference data from WebGeocalc (http://wgc.jpl.nasa.gov/)
