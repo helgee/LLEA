@@ -27,9 +27,22 @@ end interface joinpath
 private
 
 public :: stop_error, newunit, printbool, joinpath, sep, mode_open,&
-    timestamp_file
+    timestamp_file, uppercase
 
 contains
+
+function uppercase(str) result(upper)
+    character(len=*), intent(in) :: str
+    character(len=len(str)) :: upper
+    integer :: j
+    do j = 1,len(str)
+        if(str(j:j) >= "a" .and. str(j:j) <= "z") then
+           upper(j:j) = achar(iachar(str(j:j)) - 32)
+        else
+           upper(j:j) = str(j:j)
+        end if
+    end do
+end function uppercase
 
 function timestamp_file(file, ext) result(f)
     character(len=*), intent(in) :: file
