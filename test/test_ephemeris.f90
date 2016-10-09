@@ -103,13 +103,6 @@ subroutine jpltest(s, path)
         read(u, *, iostat=stat) de, date, jed, t, c, x, val
         if ((t == 14).or.(t == 15)) cycle
 
-        print *, "Ephemeris: ", de
-        print *, "Date: ", jed
-        print *, "Target: ", t
-        print *, "Origin: ", c
-        print *, "ref=", val
-
-
         ts = teststate(s, t, jed, err)
         if (iserror(err).and.hasid(err, "OutOfRangeError")) then
             call reset(err)
@@ -125,7 +118,6 @@ subroutine jpltest(s, path)
         cs(4:6) = cs(4:6) * 86400
         st = (ts - cs) / au
 
-        print *, "res=", st(x)
         call assert_almost_equal(st(x), val, __LINE__, atol=1e-13_dp)
     end do
 end subroutine jpltest
