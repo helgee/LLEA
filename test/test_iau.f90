@@ -20,7 +20,6 @@ real(dp) :: dalpha
 real(dp) :: delta
 real(dp) :: ddelta
 real(dp), dimension(3,3) :: iau
-real(dp), dimension(3) :: res
 
 call init_constants
 ep = epoch(2000, 1, 1, 12) + epochdelta(seconds=1000._dp)

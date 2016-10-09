@@ -4,7 +4,6 @@ use assertions
 use bodies
 use constants
 use epochs
-use math, only: eps
 use types, only: dp
 use states
 

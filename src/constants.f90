@@ -20,6 +20,8 @@ type(body) :: neptune
 ! satellites
 type(body) :: moon
 
+real(dp), parameter :: au = 0.149597870700000000e+09_dp
+
 contains
 
 subroutine init_constants
