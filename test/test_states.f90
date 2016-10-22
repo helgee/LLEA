@@ -4,6 +4,7 @@ use assertions
 use bodies
 use constants
 use epochs
+use math, only: mod2pi
 use types, only: dp
 use states
 
@@ -16,6 +17,11 @@ real(dp), dimension(3,3) :: dm
 real(dp), dimension(6) :: refvec = [1._dp, 2._dp, 3._dp, 4._dp, 5._dp, 6._dp]
 type(state) :: s
 type(state) :: s1
+real(dp) :: mu
+real(dp), dimension(6) :: rvexp
+real(dp), dimension(6) :: elexp
+real(dp), dimension(6) :: rv
+real(dp), dimension(6) :: el
 
 ep = epoch(2000, 1, 1, 12) + epochdelta(seconds=1000._dp)
 call init_constants
@@ -405,5 +411,19 @@ s1 = rotate(s, "IAU")
 call assert_almost_equal(s1%rv, refvec, __LINE__)
 call rotate_inplace(s1, "GCRF")
 call assert_almost_equal(s1%rv, s%rv, __LINE__)
+
+! Example from Vallado, reference values from Orekit
+mu = 3.986004415e5_dp
+rvexp = [6524.834_dp, 6862.875_dp, 6448.296_dp, 4.901327_dp, 5.533756_dp, 1.976341_dp]
+elexp = [36127.33776397479_dp, 0.970200843222015_dp, 1.4857581497380534_dp, &
+    -2.2728703614097303_dp, -0.026581796620510634_dp, 2.5678767183357816_dp]
+elexp(3) = mod2pi(elexp(3))
+elexp(4) = mod2pi(elexp(4))
+elexp(5) = mod2pi(elexp(5))
+elexp(6) = mod2pi(elexp(6))
+el = keplerian(rvexp, mu)
+call assert_almost_equal(el, elexp, __LINE__)
+rv = cartesian(el, mu)
+call assert_almost_equal(rv, rvexp, __LINE__)
 
 end program teststates
