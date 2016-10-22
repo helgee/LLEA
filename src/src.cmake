@@ -11,5 +11,6 @@ set(LLEA_SRCS
     src/math.f90
     src/rotations.f90
     src/states.f90
+    src/trajectories.f90
     src/types.f90
     src/util.f90)
