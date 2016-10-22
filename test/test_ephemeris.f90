@@ -5,7 +5,6 @@ use constants, only: au
 use ephemeris
 use epochs
 use exceptions
-use math, only: eps
 use types, only: dp
 
 implicit none

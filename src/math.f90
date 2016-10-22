@@ -12,7 +12,7 @@ public :: pih, pi, twopi, deg, rad,&
     vecang, polcart, cartpol, norm,&
     getsign, binsearch,&
     interp, findroot, isapprox,&
-    issorted, greatcircle, deg2rad, rad2deg
+    issorted, greatcircle, deg2rad, rad2deg, cot
 
 ! Constants: Mathematical constants
 !
@@ -41,6 +41,13 @@ interface norm
 end interface norm
 
 contains
+
+elemental function cot(arg) result(res)
+    real(dp), intent(in) :: arg
+    real(dp) :: res
+
+    res = 1._dp / tan(arg)
+end function cot
 
 elemental function deg2rad(d) result(r)
     real(dp), intent(in) :: d
@@ -167,7 +174,7 @@ end function unitmat
 !
 ! Returns:
 !   ang - Truncated angle in radians
-pure function mod2pi(angin) result(ang)
+elemental function mod2pi(angin) result(ang)
     real(dp), intent(in) :: angin
     real(dp) :: ang
     ang = mod(angin, twopi)

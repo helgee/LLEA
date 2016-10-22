@@ -36,6 +36,10 @@ add_executable(test_math test/test_math.f90)
 target_link_libraries(test_math llea)
 add_test(TEST_MATH test_math)
 
+add_executable(test_propagators test/test_propagators.f90)
+target_link_libraries(test_propagators llea)
+add_test(TEST_PROPAGATORS test_propagators)
+
 add_executable(test_rotations test/test_rotations.f90)
 target_link_libraries(test_rotations llea)
 add_test(TEST_ROTATIONS test_rotations)
