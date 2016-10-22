@@ -31,6 +31,7 @@ type epoch
 end type epoch
 
 interface epoch
+    module procedure new_epoch_dummy
     module procedure new_epoch_init
     module procedure new_epoch_calendar
 end interface epoch
@@ -68,6 +69,12 @@ interface days
 end interface days
 
 contains
+
+pure function new_epoch_dummy() result(ep)
+    type(epoch) :: ep
+
+    ep = new_epoch_calendar(2000, 1, 1, 12)
+end function new_epoch_dummy
 
 pure function new_epoch_init(jd, jd1) result(ep)
     real(dp), intent(in) :: jd

@@ -46,8 +46,8 @@ integer, parameter :: framelen = 8
 
 type state
     type(epoch) :: ep
-    real(dp), dimension(6) :: rv
-    character(len=framelen) :: frame
+    real(dp), dimension(6) :: rv = 0._dp
+    character(len=framelen) :: frame = "GCRF"
     type(body) :: center
 end type state
 
@@ -56,11 +56,29 @@ interface keplerian
     module procedure keplerian_state
 end interface keplerian
 
+interface state
+    module procedure state_init
+end interface state
+
 private
 
-public :: state, rotate_inplace, rotate, cartesian, keplerian
+public :: state, rotate_inplace, rotate, cartesian, keplerian, state_from_elements
 
 contains
+
+function state_init(ep, rv, frame, center) result(s)
+    type(epoch), intent(in) :: ep
+    real(dp), dimension(:), intent(in) :: rv
+    character(len=framelen), intent(in), optional :: frame
+    type(body), intent(in), optional :: center
+    type(state) :: s
+
+    s%ep = ep
+    s%rv = rv
+    if (present(frame)) s%frame = frame
+    s%center = earth
+    if (present(center)) s%center = center
+end function state_init
 
 subroutine rotate_inplace(s, to, err)
     type(state), intent(inout) :: s
@@ -243,7 +261,11 @@ function state_from_elements(ep, ele, frame, center) result(s)
     if (present(center)) center_ = center
 
     rv = cartesian(ele, center%mu)
-    s = state(ep, rv, frame_, center_)
+    s%ep = ep
+    s%rv = rv
+    if (present(frame)) s%frame = frame
+    s%center = earth
+    if (present(center)) s%center = center
 end function state_from_elements
 
 end module states

@@ -33,8 +33,11 @@
 module propagators
 
 use types, only: dp
+use epochs, only: epochdelta, seconds, operator (+)
 use exceptions
-use math, only: eps, isapprox, norm, pih, cross, cot
+use math, only: eps, isapprox, norm, pih, cross, cot, linspace
+use states, only: state
+use trajectories, only: trajectory
 
 implicit none
 
@@ -50,9 +53,97 @@ end interface kepler
 
 private
 
-public :: kepler, solve_kepler
+public :: kepler, solve_kepler, getstate, gettrajectory
+
+interface getstate
+    module procedure getstate_kepler_dp
+    module procedure getstate_kepler_epochdelta
+end interface getstate
+
+interface gettrajectory
+    module procedure gettrajectory_kepler_epochdelta
+end interface gettrajectory
 
 contains
+
+function gettrajectory_kepler_epochdelta(s0, epd, p, err) result(tra)
+    type(state), intent(in) :: s0
+    type(epochdelta), intent(in) :: epd
+    type(kepler), intent(in) :: p
+    type(exception), intent(inout), optional :: err
+    type(trajectory) :: tra
+
+    integer :: i
+    real(dp), dimension(p%points) :: times
+    real(dp) :: dt
+    type(exception) :: err_
+
+    dt = seconds(epd)
+    times = linspace(0._dp, dt, p%points)
+    tra%initial_state = s0
+    tra%fields = ["x ", "y ", "z ", "vx", "vy", "vz"]
+    allocate(tra%vectors(6, p%points))
+    do i = 1, p%points
+        tra%vectors(:, i) = solve_kepler(s0%center%mu, s0%rv, times(i), p%iterations, &
+            p%rtol, err_)
+        if (iserror(err_)) then
+            call catch(err_, "gettrajectory_kepler_epochdelta", __FILE__, __LINE__)
+            if (present(err)) then
+                err = err_
+                return
+            else
+                call raise(err_)
+            end if
+        end if
+    end do
+    tra%final_state = state(s0%ep + epd, tra%vectors(:, p%points), s0%frame, s0%center)
+endfunction gettrajectory_kepler_epochdelta
+
+function getstate_kepler_dp(s0, dt, p, err) result(s1)
+    type(state), intent(in) :: s0
+    real(dp), intent(in) :: dt
+    type(kepler), intent(in) :: p
+    type(exception), intent(inout), optional :: err
+
+    type(state) :: s1
+    type(exception) :: err_
+    type(epochdelta) :: epd
+
+    epd = epochdelta(seconds=dt)
+    s1 = getstate_kepler_epochdelta(s0, epd, p, err_)
+    if (iserror(err_)) then
+        call catch(err_, "getstate_kepler_dp", __FILE__, __LINE__)
+        if (present(err)) then
+            err = err_
+            return
+        else
+            call raise(err_)
+        end if
+    end if
+end function getstate_kepler_dp
+
+function getstate_kepler_epochdelta(s0, epd, p, err) result(s1)
+    type(state), intent(in) :: s0
+    type(epochdelta), intent(in) :: epd
+    type(kepler), intent(in) :: p
+    type(exception), intent(inout), optional :: err
+
+    type(state) :: s1
+    type(exception) :: err_
+    real(dp), dimension(6) :: rv1
+
+    rv1 = solve_kepler(s0%center%mu, s0%rv, seconds(epd), p%iterations, p%rtol, err_)
+    if (iserror(err_)) then
+        call catch(err_, "getstate_kepler_epochdelta", __FILE__, __LINE__)
+        if (present(err)) then
+            err = err_
+            return
+        else
+            call raise(err_)
+        end if
+    end if
+    s1 = state(s0%ep + epd, rv1, s0%frame, s0%center)
+end function getstate_kepler_epochdelta
 
 function kepler_init(iterations, points, rtol) result(kep)
     integer, intent(in), optional :: iterations

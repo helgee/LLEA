@@ -7,11 +7,11 @@ implicit none
 
 private
 
-public :: pih, pi, twopi, deg, rad,&
-    eps, cross, unitmat, mod2pi,&
-    vecang, polcart, cartpol, norm,&
-    getsign, binsearch,&
-    interp, findroot, isapprox,&
+public :: pih, pi, twopi, deg, rad, &
+    eps, cross, unitmat, mod2pi, &
+    vecang, polcart, cartpol, norm, &
+    getsign, binsearch, linspace, &
+    interp, findroot, isapprox, &
     issorted, greatcircle, deg2rad, rad2deg, cot
 
 ! Constants: Mathematical constants
@@ -711,5 +711,18 @@ function greatcircle(lat1, lat2, lon1, lon2, r) result(d)
     dsigma = atan2(a, b)
     d = r*dsigma
 end function greatcircle
+
+function linspace(x1, xn, n) result(res)
+    real(dp), intent(in) :: x1
+    real(dp), intent(in) :: xn
+    integer, intent(in) :: n
+    integer :: i
+
+    real(dp), dimension(n) :: res
+
+    do i = 1, n
+        res(i) = x1 + (xn - x1) * real(i-1, dp) / real(n-1, dp)
+    end do
+end function linspace
 
 end module math
