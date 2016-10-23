@@ -62,7 +62,7 @@ end interface state
 
 private
 
-public :: state, rotate_inplace, rotate, cartesian, keplerian, state_from_elements
+public :: state, rotate_inplace, rotate, cartesian, keplerian, state_from_elements, framelen
 
 contains
 
