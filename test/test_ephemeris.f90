@@ -6,10 +6,11 @@ use ephemeris
 use epochs
 use exceptions
 use types, only: dp
+use util, only: joinpath, projectdir
 
 implicit none
 
-character(len=14) :: path
+character(len=:), allocatable :: path
 type(epoch) :: ep
 type(daf) :: d
 type(spk) :: s
@@ -24,7 +25,7 @@ ref430 = [-2.052932489501512e7_dp,-6.0323956764362626e7_dp,-3.0130843855883405e7
 
 call assert_equal(naifid("ssb"), 0, __LINE__)
 
-path = "data/de430.bsp"
+path = joinpath(projectdir("data"), "de430.bsp")
 d = daf(path)
 call assert_equal(d%id, "DAF/SPK", __LINE__)
 call assert_equal(d%endianness, "little_endian", __LINE__)
@@ -59,9 +60,10 @@ call assert_almost_equal(res6, ref430, __LINE__)
 res6 = getstate(s, "ssb", "mercury barycenter", ep)
 call assert_almost_equal(res6, ref430, __LINE__)
 
-call jpltest(s, "data/testpo.430")
+path = joinpath(projectdir("data"), "testpo.430")
+call jpltest(s, path)
 
-path = "data/de405.bsp"
+path = joinpath(projectdir("data"), "de405.bsp")
 d = daf(path)
 call assert_equal(d%id, "NAIF/DAF", __LINE__)
 call assert_equal(d%endianness, "big_endian", __LINE__)
@@ -69,7 +71,8 @@ s = spk(path)
 res6 = getstate(s, 1, ep%jd, ep%jd1)
 call assert_almost_equal(res6, ref405, __LINE__)
 
-call jpltest(s, "data/testpo.405")
+path = joinpath(projectdir("data"), "testpo.405")
+call jpltest(s, path)
 
 contains
 

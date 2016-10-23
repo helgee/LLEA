@@ -27,9 +27,22 @@ end interface joinpath
 private
 
 public :: stop_error, newunit, printbool, joinpath, sep, mode_open,&
-    timestamp_file, uppercase
+    timestamp_file, uppercase, projectdir
 
 contains
+
+function projectdir(sub) result(p)
+    character(len=*), intent(in), optional :: sub
+    character(len=:), allocatable :: p
+
+    integer :: ind
+
+    p = __FILE__
+    ind = index(p(1:index(p, sep, .true.) - 1), sep, .true.) - 1
+    if (present(sub)) then
+        p = joinpath(p(1:ind), sub)
+    end if
+end function projectdir
 
 function uppercase(str) result(upper)
     character(len=*), intent(in) :: str

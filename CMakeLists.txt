@@ -4,6 +4,7 @@ project(LLEA Fortran)
 enable_language(Fortran)
 enable_testing()
 
+include(cmake/data.cmake)
 include(cmake/flags.cmake)
 include(deps/deps.cmake)
 include(src/src.cmake)

@@ -6,6 +6,7 @@ use assertions
 use bodies
 use constants
 use epochs
+use ephemeris
 use exceptions
 use math
 use rotations
@@ -20,6 +21,7 @@ contains
 function init_llea() result(code)
     integer :: code
     call init_constants
+    call init_ephemeris
     code = 0
 end function init_llea
 

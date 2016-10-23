@@ -27,4 +27,6 @@
 *.exe
 *.out
 *.app
+
 build/
+data/

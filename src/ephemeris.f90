@@ -3,7 +3,7 @@ module ephemeris
 use types, only: dp
 use exceptions
 use epochs, only: seconds_per_day, epoch
-use util, only: uppercase
+use util, only: uppercase, joinpath, sep, projectdir
 
 implicit none
 
@@ -75,11 +75,24 @@ interface getstate
     module procedure getstate_highlevel
 end interface getstate
 
+type(spk) :: ephem
+
 private
 
-public :: daf, spk, getposition, getvelocity, getstate, naifid
+public :: daf, spk, getposition, getvelocity, getstate, naifid, init_ephemeris
 
 contains
+
+subroutine init_ephemeris(denum)
+    character(len=3), intent(in), optional :: denum
+
+    character(len=3) :: denum_
+    character(len=:), allocatable :: path
+
+    denum_ = "430"
+    if (present(denum)) denum_ = denum
+    ephem = spk(joinpath(projectdir("data"), "de"//denum//".bsp"))
+end subroutine init_ephemeris
 
 function new_spk(path, err) result(s)
     character(len=*), intent(in) :: path
