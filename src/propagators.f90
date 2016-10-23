@@ -75,16 +75,13 @@ function gettrajectory_kepler_epochdelta(s0, epd, p, err) result(tra)
 
     integer :: i
     real(dp), dimension(p%points) :: times
-    real(dp) :: dt
+    real(dp), dimension(:,:), allocatable :: vectors
     type(exception) :: err_
 
-    dt = seconds(epd)
-    times = linspace(0._dp, dt, p%points)
-    tra%initial_state = s0
-    tra%fields = ["x ", "y ", "z ", "vx", "vy", "vz"]
-    allocate(tra%vectors(6, p%points))
+    times = linspace(0._dp, seconds(epd), p%points)
+    allocate(vectors(p%points, 6))
     do i = 1, p%points
-        tra%vectors(:, i) = solve_kepler(s0%center%mu, s0%rv, times(i), p%iterations, &
+        vectors(i, :) = solve_kepler(s0%center%mu, s0%rv, times(i), p%iterations, &
             p%rtol, err_)
         if (iserror(err_)) then
             call catch(err_, "gettrajectory_kepler_epochdelta", __FILE__, __LINE__)
@@ -96,7 +93,7 @@ function gettrajectory_kepler_epochdelta(s0, epd, p, err) result(tra)
             end if
         end if
     end do
-    tra%final_state = state(s0%ep + epd, tra%vectors(:, p%points), s0%frame, s0%center)
+    tra = trajectory(s0, times, vectors)
 endfunction gettrajectory_kepler_epochdelta
 
 function getstate_kepler_dp(s0, dt, p, err) result(s1)
