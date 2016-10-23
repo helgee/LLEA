@@ -6,6 +6,7 @@ set(LLEA_SRCS
     src/ephemeris.f90
     src/epochs.f90
     src/exceptions.f90
+    src/forces.f90
     src/integrators.f90
     src/llea.f90
     src/math.f90

@@ -32,12 +32,16 @@
 !
 module propagators
 
-use types, only: dp
+use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
+use bodies, only: body
+use constants, only: earth
 use epochs, only: epochdelta, seconds, operator (+)
 use exceptions
+use forces, only: model, gravity, drag
 use math, only: eps, isapprox, norm, pih, cross, cot, linspace
 use states, only: state, framelen
 use trajectories, only: trajectory
+use types, only: dp
 
 implicit none
 
@@ -84,6 +88,9 @@ type, extends(propagator) :: ode
     character(len=framelen) :: frame
     real(dp) :: maxstep = 0._dp
     integer :: numstep = 100000
+    class(gravity), allocatable :: gravity
+    class(drag), allocatable :: drag
+    type(body), dimension(:), allocatable :: bodies
 contains
     procedure :: trajectory => ode_trajectory
     procedure :: state => ode_state
@@ -172,6 +179,22 @@ function ode_state(p, s0, epd, err) result(s1)
 
     type(exception) :: err_
 end function ode_state
+
+subroutine rhs(n, t, y, f, tnk)
+    integer, intent(in) :: n
+    real(dp), intent(in) :: t
+    real(dp), dimension(:), intent(in) :: y
+    real(dp), dimension(:), intent(out) :: f
+    type(c_ptr), intent(in) :: tnk
+
+    type(ode), pointer :: p
+    call c_f_pointer(tnk, p)
+
+    call p%gravity%update(f, t, y)
+    if (allocated(p%drag)) then
+        call p%drag%update(f, t, y)
+    end if
+end subroutine rhs
 
 function kepler_trajectory(p, s0, epd, err) result(tra)
     class(kepler), intent(in) :: p
