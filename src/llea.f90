@@ -6,7 +6,7 @@ use assertions
 use bodies
 use constants
 use epochs
-use ephemeris
+use ephemerides
 use exceptions
 use math
 use rotations

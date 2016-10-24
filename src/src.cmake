@@ -3,7 +3,7 @@ set(LLEA_SRCS
     src/bodies.f90
     src/constants.f90
     src/dopri.f90
-    src/ephemeris.f90
+    src/ephemerides.f90
     src/epochs.f90
     src/exceptions.f90
     src/forces.f90

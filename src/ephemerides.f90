@@ -1,4 +1,4 @@
-module ephemeris
+module ephemerides
 
 use types, only: dp
 use exceptions
@@ -6,6 +6,45 @@ use epochs, only: seconds_per_day, epoch
 use util, only: uppercase, joinpath, sep, projectdir
 
 implicit none
+
+type, abstract :: ephemeris
+contains
+    procedure(abstract_position), deferred :: position
+    procedure(abstract_velocity), deferred :: velocity
+    procedure(abstract_state), deferred :: state
+end type ephemeris
+
+abstract interface
+    function abstract_position(this, ep, to, from, err) result(r)
+        import :: ephemeris, epoch, dp, exception
+        class(ephemeris), intent(inout) :: this
+        type(epoch), intent(in) :: ep
+        class(*), intent(in) :: to
+        class(*), intent(in), optional :: from
+        type(exception), intent(inout), optional :: err
+        real(dp), dimension(3) :: r
+    end function abstract_position
+
+    function abstract_velocity(this, ep, to, from, err) result(v)
+        import :: ephemeris, epoch, dp, exception
+        class(ephemeris), intent(inout) :: this
+        type(epoch), intent(in) :: ep
+        class(*), intent(in) :: to
+        class(*), intent(in), optional :: from
+        type(exception), intent(inout), optional :: err
+        real(dp), dimension(3) :: v
+    end function abstract_velocity
+
+    function abstract_state(this, ep, to, from, err) result(s)
+        import :: ephemeris, epoch, dp, exception
+        class(ephemeris), intent(inout) :: this
+        type(epoch), intent(in) :: ep
+        class(*), intent(in) :: to
+        class(*), intent(in), optional :: from
+        type(exception), intent(inout), optional :: err
+        real(dp), dimension(6) :: s
+    end function abstract_state
+end interface
 
 type daf
     character(len=1024) :: path = ""
@@ -43,43 +82,29 @@ type spksegment
     integer :: cachedrecord = -1
 end type spksegment
 
-type spk
+type, extends(ephemeris) :: jplephem
     type(daf) :: daffile
     type(spksegment), dimension(:), allocatable :: segments
-end type spk
+contains
+    procedure :: coefficients => coefficients
+    procedure :: getsegnum => getsegnum
+    procedure :: position => jplephem_position
+    procedure :: position_lowlevel => jplephem_position_lowlevel
+    procedure :: velocity => jplephem_velocity
+    procedure :: velocity_lowlevel => jplephem_velocity_lowlevel
+    procedure :: state => jplephem_state
+    procedure :: state_lowlevel => jplephem_state_lowlevel
+end type jplephem
 
-interface spk
-    module procedure new_spk
-end interface spk
+interface jplephem
+    module procedure new_jplephem
+end interface jplephem
 
-interface getposition
-    module procedure getposition_lowlevel
-    module procedure getposition_tdb
-    module procedure getposition_naif
-    module procedure getposition_epoch
-    module procedure getposition_highlevel
-end interface getposition
-
-interface getvelocity
-    module procedure getvelocity_lowlevel
-    module procedure getvelocity_tdb
-    module procedure getvelocity_naif
-    module procedure getvelocity_epoch
-    module procedure getvelocity_highlevel
-end interface getvelocity
-
-interface getstate
-    module procedure getstate_tdb
-    module procedure getstate_naif
-    module procedure getstate_epoch
-    module procedure getstate_highlevel
-end interface getstate
-
-type(spk) :: ephem
+class(ephemeris), allocatable :: ephem
 
 private
 
-public :: daf, spk, getposition, getvelocity, getstate, naifid, init_ephemeris
+public :: daf, jplephem, ephemeris, ephem, naifid, init_ephemeris, getpath
 
 contains
 
@@ -91,13 +116,13 @@ subroutine init_ephemeris(denum)
 
     denum_ = "430"
     if (present(denum)) denum_ = denum
-    ephem = spk(joinpath(projectdir("data"), "de"//denum//".bsp"))
+    allocate(ephem, source=jplephem(joinpath(projectdir("data"), "de"//denum//".bsp")))
 end subroutine init_ephemeris
 
-function new_spk(path, err) result(s)
+function new_jplephem(path, err) result(eph)
     character(len=*), intent(in) :: path
     type(exception), intent(inout), optional :: err
-    type(spk), target :: s
+    type(jplephem), target :: eph
 
     type(exception) :: err_
     integer :: i
@@ -116,7 +141,7 @@ function new_spk(path, err) result(s)
 
     seg => null()
 
-    s%daffile = daf(path, err_)
+    eph%daffile = daf(path, err_)
     if (iserror(err_)) then
         call catch(err_, "new_spk", __FILE__, __LINE__)
         if (present(err)) then
@@ -128,10 +153,10 @@ function new_spk(path, err) result(s)
     end if
 
     nsegments = 0
-    next = s%daffile%first
+    next = eph%daffile%first
     do while (next /= 0)
-        open(newunit=u, file=s%daffile%path, status="old", form="unformatted", access="direct", recl=1024, &
-            action="read", convert=s%daffile%endianness)
+        open(newunit=u, file=eph%daffile%path, status="old", form="unformatted", access="direct", recl=1024, &
+            action="read", convert=eph%daffile%endianness)
         read(u,rec=next) next_dp, prev_dp, nsum_dp
         close(u)
         next = int(next_dp)
@@ -139,21 +164,21 @@ function new_spk(path, err) result(s)
         nsum = int(nsum_dp)
         nsegments = nsegments + nsum
     end do
-    allocate(s%segments(nsegments))
+    allocate(eph%segments(nsegments))
 
     nsegments = 0
-    next = s%daffile%first
+    next = eph%daffile%first
     do while (next /= 0)
-        open(newunit=u, file=s%daffile%path, status="old", form="unformatted", access="direct", recl=1024, &
-            action="read", convert=s%daffile%endianness)
+        open(newunit=u, file=eph%daffile%path, status="old", form="unformatted", access="direct", recl=1024, &
+            action="read", convert=eph%daffile%endianness)
         read(u,rec=next) next_dp, prev_dp, nsum_dp
         close(u)
-        open(newunit=u, file=s%daffile%path, status="old", form="unformatted", access="stream", &
-            action="read", convert=s%daffile%endianness)
+        open(newunit=u, file=eph%daffile%path, status="old", form="unformatted", access="stream", &
+            action="read", convert=eph%daffile%endianness)
         do i = 1, nsum
             nsegments = nsegments + 1
-            seg => s%segments(nsegments)
-            pos = 1024 * (next - 1) + 25 + dp * s%daffile%ss * (i-1)
+            seg => eph%segments(nsegments)
+            pos = 1024 * (next - 1) + 25 + dp * eph%daffile%ss * (i-1)
             read(u,pos=pos) seg%firstsec, seg%lastsec, seg%targ, seg%origin, seg%frame, seg%spktype, &
                 seg%firstaddr, seg%lastaddr
             seg%firstdate = jd(seg%firstsec)
@@ -168,10 +193,10 @@ function new_spk(path, err) result(s)
         prev = int(prev_dp)
         nsum = int(nsum_dp)
     end do
-end function new_spk
+end function new_jplephem
 
-subroutine coefficients(s, segnum, tdb, tdb2, x, twotc, err)
-    type(spk), intent(inout), target :: s
+subroutine coefficients(eph, segnum, tdb, tdb2, x, twotc, err)
+    class(jplephem), intent(inout), target :: eph
     integer, intent(in) :: segnum
     real(dp), intent(in) :: tdb
     real(dp), intent(in) :: tdb2
@@ -192,7 +217,7 @@ subroutine coefficients(s, segnum, tdb, tdb2, x, twotc, err)
     integer :: u
     real(dp), dimension(:), allocatable :: c
 
-    seg => s%segments(segnum)
+    seg => eph%segments(segnum)
     if ((tdb + tdb2 < seg%firstdate).or.(tdb + tdb2 > seg%lastdate)) then
         err_ = error("Date is out of range of the ephemeris.", "coefficients", __FILE__, __LINE__, &
             id="OutOfRangeError")
@@ -216,8 +241,8 @@ subroutine coefficients(s, segnum, tdb, tdb2, x, twotc, err)
     end if
     if (recordnum /= seg%cachedrecord) then
         pos = dp * (seg%firstaddr + seg%recordsize * recordnum + 1) + 1
-        open(newunit=u, file=s%daffile%path, status="old", form="unformatted", access="stream", &
-            action="read", convert=s%daffile%endianness)
+        open(newunit=u, file=eph%daffile%path, status="old", form="unformatted", access="stream", &
+            action="read", convert=eph%daffile%endianness)
         read(u,pos=pos) c
         close(u)
         seg%cache = transpose(reshape(c, [order, components]))
@@ -233,18 +258,108 @@ subroutine coefficients(s, segnum, tdb, tdb2, x, twotc, err)
     end do
 end subroutine coefficients
 
-function getposition_lowlevel(seg, x) result(r)
-    type(spksegment), intent(in) :: seg
-    real(dp), dimension(:), intent(in) :: x
-    real(dp), dimension(3) :: r
-    r = matmul(seg%cache, x)
-end function getposition_lowlevel
+recursive subroutine getpath(path, to)
+    integer, dimension(:), intent(inout), allocatable :: path
+    integer, intent(in) :: to
 
-function getposition_tdb(s, segnum, tdb, tdb2, err) result(r)
-    type(spk), intent(inout) :: s
-    integer, intent(in) :: segnum
+    integer :: current
+
+    current = path(size(path))
+    if (current == to) then
+        return
+    elseif (isbody(current)) then
+        path = [path, current/100]
+        call getpath(path, to)
+    elseif (isbarycenter(current).and.ischild(current, to)) then
+        path = [path, to]
+        call getpath(path, to)
+    elseif (isbarycenter(current).and..not.ischild(current, to)) then
+        path = [path, 0]
+        call getpath(path, to)
+    elseif (current == 0.and.isbarycenter(to)) then
+        path = [path, to]
+        call getpath(path, to)
+    elseif (current == 0.and.isbody(to)) then
+        path = [path, to/100]
+        call getpath(path, to)
+    end if
+end subroutine getpath
+
+function isbarycenter(id) result(res)
+    integer, intent(in) :: id
+    logical :: res
+    res = id < 100 .and. id > 0
+end function isbarycenter
+
+function isbody(id) result(res)
+    integer, intent(in) :: id
+    logical :: res
+    res = id > 100
+end function isbody
+
+function ischild(parent, id) result(res)
+    integer, intent(in) :: parent
+    integer, intent(in) :: id
+    logical :: res
+    res = parent == id / 100
+end function ischild
+
+function jplephem_position(this, ep, to, from, err) result(r)
+    class(jplephem), intent(inout) :: this
+    type(epoch), intent(in) :: ep
+    class(*), intent(in) :: to
+    class(*), intent(in), optional :: from
+    type(exception), intent(inout), optional :: err
+    real(dp), dimension(3) :: r
+
+    type(exception) :: err_
+    integer :: to_
+    integer :: from_
+    integer :: i
+    integer, dimension(:), allocatable :: path
+    integer :: segnum
+
+    select type (to)
+    type is (character(len=*))
+        to_ = naifid(to)
+    type is (integer)
+        to_ = to
+    end select
+
+    from_ = 0
+    if (present(from)) then
+        select type (from)
+        type is (character(len=*))
+            from_ = naifid(from)
+        type is (integer)
+            from_ = from
+        end select
+    end if
+    path = [from_]
+    call getpath(path, to_)
+
+    r = 0._dp
+    do i = 1, size(path) - 1
+        segnum = this%getsegnum(path(i), path(i+1))
+        r = r + sign(1, segnum) * &
+            this%position_lowlevel(ep%jd, ep%jd1, abs(segnum), err_)
+        if (iserror(err_)) then
+            call catch(err_, "jplephem_position", __FILE__, __LINE__)
+            if (present(err)) then
+                err = err_
+                return
+            else
+                call raise(err_)
+            end if
+        end if
+    end do
+end function jplephem_position
+
+function jplephem_position_lowlevel(this, tdb, tdb2, segnum, err) result(r)
+    class(jplephem), intent(inout) :: this
     real(dp), intent(in) :: tdb
     real(dp), intent(in) :: tdb2
+    integer, intent(in) :: segnum
     type(exception), intent(inout), optional :: err
     real(dp), dimension(3) :: r
 
@@ -252,9 +367,9 @@ function getposition_tdb(s, segnum, tdb, tdb2, err) result(r)
     real(dp) :: twotc
     type(exception) :: err_
 
-    call coefficients(s, segnum, tdb, tdb2, x, twotc, err_)
+    call this%coefficients(segnum, tdb, tdb2, x, twotc, err_)
     if (iserror(err_)) then
-        call catch(err_, "getposition_tdb", __FILE__, __LINE__)
+        call catch(err_, "jplephem_position_lowlevel", __FILE__, __LINE__)
         if (present(err)) then
             err = err_
             return
@@ -262,125 +377,86 @@ function getposition_tdb(s, segnum, tdb, tdb2, err) result(r)
             call raise(err_)
         end if
     end if
-    r = getposition_lowlevel(s%segments(segnum), x)
-end function getposition_tdb
+    r = matmul(this%segments(segnum)%cache, x)
+end function jplephem_position_lowlevel
 
-function getposition_naif(s, origin, targ, tdb, tdb2, err) result(r)
-    type(spk), intent(inout) :: s
-    integer, intent(in) :: origin
-    integer, intent(in) :: targ
-    real(dp), intent(in) :: tdb
-    real(dp), intent(in), optional :: tdb2
-    type(exception), intent(inout), optional :: err
-    real(dp), dimension(3) :: r
-
-    type(exception) :: err_
-    real(dp) :: tdb2_
-    integer :: segnum
-
-    tdb2_ = 0._dp
-    if (present(tdb2)) tdb2_ = tdb2
-
-    segnum = getsegnum(s, origin, targ, err_)
-    if (iserror(err_)) then
-        call catch(err_, "getposition_naif", __FILE__, __LINE__)
-        if (present(err)) then
-            err = err_
-            return
-        else
-            call raise(err_)
-        end if
-    end if
-
-    r = getposition_tdb(s, segnum, tdb, tdb2_, err_)
-    if (iserror(err_)) then
-        call catch(err_, "getposition_naif", __FILE__, __LINE__)
-        if (present(err)) then
-            err = err_
-            return
-        else
-            call raise(err_)
-        end if
-    end if
-end function getposition_naif
-
-function getposition_epoch(s, origin, targ, ep, err) result(r)
-    type(spk), intent(inout) :: s
-    integer, intent(in) :: origin
-    integer, intent(in) :: targ
+function jplephem_velocity(this, ep, to, from, err) result(v)
+    class(jplephem), intent(inout) :: this
     type(epoch), intent(in) :: ep
+    class(*), intent(in) :: to
+    class(*), intent(in), optional :: from
     type(exception), intent(inout), optional :: err
-    real(dp), dimension(3) :: r
-
-    type(exception) :: err_
-    integer :: segnum
-
-    segnum = getsegnum(s, origin, targ, err_)
-    if (iserror(err_)) then
-        call catch(err_, "getposition_epoch", __FILE__, __LINE__)
-        if (present(err)) then
-            err = err_
-            return
-        else
-            call raise(err_)
-        end if
-    end if
-
-    r = getposition_tdb(s, segnum, ep%jd, ep%jd1, err_)
-    if (iserror(err_)) then
-        call catch(err_, "getposition_epoch", __FILE__, __LINE__)
-        if (present(err)) then
-            err = err_
-            return
-        else
-            call raise(err_)
-        end if
-    end if
-end function getposition_epoch
-
-function getposition_highlevel(s, origin, targ, ep, err) result(r)
-    type(spk), intent(inout) :: s
-    character(len=*), intent(in) :: origin
-    character(len=*), intent(in) :: targ
-    type(epoch), intent(in) :: ep
-    type(exception), intent(inout), optional :: err
-    real(dp), dimension(3) :: r
-
-    type(exception) :: err_
-    integer :: segnum
-
-    segnum = getsegnum(s, naifid(origin), naifid(targ), err_)
-    if (iserror(err_)) then
-        call catch(err_, "getposition_highlevel", __FILE__, __LINE__)
-        if (present(err)) then
-            err = err_
-            return
-        else
-            call raise(err_)
-        end if
-    end if
-
-    r = getposition_tdb(s, segnum, ep%jd, ep%jd1, err_)
-    if (iserror(err_)) then
-        call catch(err_, "getposition_highlevel", __FILE__, __LINE__)
-        if (present(err)) then
-            err = err_
-            return
-        else
-            call raise(err_)
-        end if
-    end if
-end function getposition_highlevel
-
-function getvelocity_lowlevel(seg, x, twotc) result(v)
-    type(spksegment), intent(in) :: seg
-    real(dp), dimension(:), intent(in) :: x
-    real(dp), intent(in) :: twotc
     real(dp), dimension(3) :: v
 
-    real(dp), dimension(size(x)) :: t
+    type(exception) :: err_
+    integer :: to_
+    integer :: from_
     integer :: i
+    integer, dimension(:), allocatable :: path
+    integer :: segnum
 
+    select type (to)
+    type is (character(len=*))
+        to_ = naifid(to)
+    type is (integer)
+        to_ = to
+    end select
+
+    from_ = 0
+    if (present(from)) then
+        select type (from)
+        type is (character(len=*))
+            from_ = naifid(from)
+        type is (integer)
+            from_ = from
+        end select
+    end if
+    path = [from_]
+    call getpath(path, to_)
+
+    v = 0._dp
+    do i = 1, size(path) - 1
+        segnum = this%getsegnum(path(i), path(i+1))
+        v = v + sign(1, segnum) * &
+            this%velocity_lowlevel(ep%jd, ep%jd1, abs(segnum), err_)
+        if (iserror(err_)) then
+            call catch(err_, "jplephem_position", __FILE__, __LINE__)
+            if (present(err)) then
+                err = err_
+                return
+            else
+                call raise(err_)
+            end if
+        end if
+    end do
+end function jplephem_velocity
+
+function jplephem_velocity_lowlevel(this, tdb, tdb2, segnum, err) result(v)
+    class(jplephem), intent(inout) :: this
+    real(dp), intent(in) :: tdb
+    real(dp), intent(in) :: tdb2
+    integer, intent(in) :: segnum
+    type(exception), intent(inout), optional :: err
+    real(dp), dimension(3) :: v
+
+    real(dp), dimension(:), allocatable :: x
+    real(dp) :: twotc
+    real(dp), dimension(:), allocatable :: t
+    integer :: i
+    type(exception) :: err_
+
+    call this%coefficients(segnum, tdb, tdb2, x, twotc, err_)
+    if (iserror(err_)) then
+        call catch(err_, "jplephem_velocity_lowlevel", __FILE__, __LINE__)
+        if (present(err)) then
+            err = err_
+            return
+        else
+            call raise(err_)
+        end if
+    end if
+
+    allocate(t(size(x)))
     t(1) = 0._dp
     t(2) = 1._dp
     if (size(t) > 2) then
@@ -389,54 +465,78 @@ function getvelocity_lowlevel(seg, x, twotc) result(v)
             t(i) = twotc * t(i-1) - t(i-2) + x(i-1) + x(i-1)
         end do
     end if
-    t = 2 * t / seg%intervall
-    v = matmul(seg%cache, t)
-end function getvelocity_lowlevel
+    t = 2 * t / this%segments(segnum)%intervall
+    v = matmul(this%segments(segnum)%cache, t)
+end function jplephem_velocity_lowlevel
 
-function getvelocity_tdb(s, segnum, tdb, tdb2, err) result(v)
-    type(spk), intent(inout) :: s
-    integer, intent(in) :: segnum
+function jplephem_state(this, ep, to, from, err) result(s)
+    class(jplephem), intent(inout) :: this
+    type(epoch), intent(in) :: ep
+    class(*), intent(in) :: to
+    class(*), intent(in), optional :: from
+    type(exception), intent(inout), optional :: err
+    real(dp), dimension(6) :: s
+
+    type(exception) :: err_
+    integer :: to_
+    integer :: from_
+    integer :: i
+    integer, dimension(:), allocatable :: path
+    integer :: segnum
+
+    select type (to)
+    type is (character(len=*))
+        to_ = naifid(to)
+    type is (integer)
+        to_ = to
+    end select
+
+    from_ = 0
+    if (present(from)) then
+        select type (from)
+        type is (character(len=*))
+            from_ = naifid(from)
+        type is (integer)
+            from_ = from
+        end select
+    end if
+    path = [from_]
+    call getpath(path, to_)
+
+    s = 0._dp
+    do i = 1, size(path) - 1
+        segnum = this%getsegnum(path(i), path(i+1))
+        s = s + sign(1, segnum) * &
+            this%state_lowlevel(ep%jd, ep%jd1, abs(segnum), err_)
+        if (iserror(err_)) then
+            call catch(err_, "jplephem_position", __FILE__, __LINE__)
+            if (present(err)) then
+                err = err_
+                return
+            else
+                call raise(err_)
+            end if
+        end if
+    end do
+end function jplephem_state
+
+function jplephem_state_lowlevel(this, tdb, tdb2, segnum, err) result(s)
+    class(jplephem), intent(inout) :: this
     real(dp), intent(in) :: tdb
     real(dp), intent(in) :: tdb2
+    integer, intent(in) :: segnum
     type(exception), intent(inout), optional :: err
-    real(dp), dimension(3) :: v
+    real(dp), dimension(6) :: s
 
     real(dp), dimension(:), allocatable :: x
     real(dp) :: twotc
+    real(dp), dimension(:), allocatable :: t
+    integer :: i
     type(exception) :: err_
 
-    call coefficients(s, segnum, tdb, tdb2, x, twotc, err_)
+    call this%coefficients(segnum, tdb, tdb2, x, twotc, err_)
     if (iserror(err_)) then
-        call catch(err_, "getvelocity_tdb", __FILE__, __LINE__)
-        if (present(err)) then
-            err = err_
-            return
-        else
-            call raise(err_)
-        end if
-    end if
-    v = getvelocity_lowlevel(s%segments(segnum), x, twotc)
-end function getvelocity_tdb
-
-function getvelocity_naif(s, origin, targ, tdb, tdb2, err) result(r)
-    type(spk), intent(inout) :: s
-    integer, intent(in) :: origin
-    integer, intent(in) :: targ
-    real(dp), intent(in) :: tdb
-    real(dp), intent(in), optional :: tdb2
-    type(exception), intent(inout), optional :: err
-    real(dp), dimension(3) :: r
-
-    type(exception) :: err_
-    real(dp) :: tdb2_
-    integer :: segnum
-
-    tdb2_ = 0._dp
-    if (present(tdb2)) tdb2_ = tdb2
-
-    segnum = getsegnum(s, origin, targ, err_)
-    if (iserror(err_)) then
-        call catch(err_, "getvelocity_naif", __FILE__, __LINE__)
+        call catch(err_, "jplephem_state_lowlevel", __FILE__, __LINE__)
         if (present(err)) then
             err = err_
             return
@@ -445,218 +545,19 @@ function getvelocity_naif(s, origin, targ, tdb, tdb2, err) result(r)
         end if
     end if
 
-    r = getvelocity_tdb(s, segnum, tdb, tdb2_, err_)
-    if (iserror(err_)) then
-        call catch(err_, "getvelocity_naif", __FILE__, __LINE__)
-        if (present(err)) then
-            err = err_
-            return
-        else
-            call raise(err_)
-        end if
+    allocate(t(size(x)))
+    t(1) = 0._dp
+    t(2) = 1._dp
+    if (size(t) > 2) then
+        t(3) = twotc + twotc
+        do i = 4, size(t)
+            t(i) = twotc * t(i-1) - t(i-2) + x(i-1) + x(i-1)
+        end do
     end if
-end function getvelocity_naif
-
-function getvelocity_epoch(s, origin, targ, ep, err) result(v)
-    type(spk), intent(inout) :: s
-    integer, intent(in) :: origin
-    integer, intent(in) :: targ
-    type(epoch), intent(in) :: ep
-    type(exception), intent(inout), optional :: err
-    real(dp), dimension(3) :: v
-
-    type(exception) :: err_
-    integer :: segnum
-
-    segnum = getsegnum(s, origin, targ, err_)
-    if (iserror(err_)) then
-        call catch(err_, "getvelocity_epoch", __FILE__, __LINE__)
-        if (present(err)) then
-            err = err_
-            return
-        else
-            call raise(err_)
-        end if
-    end if
-
-    v = getvelocity_tdb(s, segnum, ep%jd, ep%jd1, err_)
-    if (iserror(err_)) then
-        call catch(err_, "getvelocity_epoch", __FILE__, __LINE__)
-        if (present(err)) then
-            err = err_
-            return
-        else
-            call raise(err_)
-        end if
-    end if
-end function getvelocity_epoch
-
-function getvelocity_highlevel(s, origin, targ, ep, err) result(v)
-    type(spk), intent(inout) :: s
-    character(len=*), intent(in) :: origin
-    character(len=*), intent(in) :: targ
-    type(epoch), intent(in) :: ep
-    type(exception), intent(inout), optional :: err
-    real(dp), dimension(3) :: v
-
-    type(exception) :: err_
-    integer :: segnum
-
-    segnum = getsegnum(s, naifid(origin), naifid(targ), err_)
-    if (iserror(err_)) then
-        call catch(err_, "getvelocity_highlevel", __FILE__, __LINE__)
-        if (present(err)) then
-            err = err_
-            return
-        else
-            call raise(err_)
-        end if
-    end if
-
-    v = getvelocity_tdb(s, segnum, ep%jd, ep%jd1, err_)
-    if (iserror(err_)) then
-        call catch(err_, "getvelocity_highlevel", __FILE__, __LINE__)
-        if (present(err)) then
-            err = err_
-            return
-        else
-            call raise(err_)
-        end if
-    end if
-end function getvelocity_highlevel
-
-function getstate_tdb(s, segnum, tdb, tdb2, err) result(st)
-    type(spk), intent(inout) :: s
-    integer, intent(in) :: segnum
-    real(dp), intent(in) :: tdb
-    real(dp), intent(in) :: tdb2
-    type(exception), intent(inout), optional :: err
-    real(dp), dimension(6) :: st
-
-    real(dp), dimension(:), allocatable :: x
-    real(dp) :: twotc
-    type(exception) :: err_
-
-    call coefficients(s, segnum, tdb, tdb2, x, twotc, err_)
-    if (iserror(err_)) then
-        call catch(err_, "getvelocity_tdb", __FILE__, __LINE__)
-        if (present(err)) then
-            err = err_
-            return
-        else
-            call raise(err_)
-        end if
-    end if
-    st(1:3) = getposition_lowlevel(s%segments(segnum), x)
-    st(4:6) = getvelocity_lowlevel(s%segments(segnum), x, twotc)
-end function getstate_tdb
-
-function getstate_naif(s, origin, targ, tdb, tdb2, err) result(st)
-    type(spk), intent(inout) :: s
-    integer, intent(in) :: origin
-    integer, intent(in) :: targ
-    real(dp), intent(in) :: tdb
-    real(dp), intent(in), optional :: tdb2
-    type(exception), intent(inout), optional :: err
-    real(dp), dimension(6) :: st
-
-    type(exception) :: err_
-    real(dp) :: tdb2_
-    integer :: segnum
-
-    tdb2_ = 0._dp
-    if (present(tdb2)) tdb2_ = tdb2
-
-    segnum = getsegnum(s, origin, targ, err_)
-    if (iserror(err_)) then
-        call catch(err_, "getstate_naif", __FILE__, __LINE__)
-        if (present(err)) then
-            err = err_
-            return
-        else
-            call raise(err_)
-        end if
-    end if
-
-    st = getstate_tdb(s, segnum, tdb, tdb2_, err_)
-    if (iserror(err_)) then
-        call catch(err_, "getvelocity_naif", __FILE__, __LINE__)
-        if (present(err)) then
-            err = err_
-            return
-        else
-            call raise(err_)
-        end if
-    end if
-end function getstate_naif
-
-function getstate_epoch(s, origin, targ, ep, err) result(st)
-    type(spk), intent(inout) :: s
-    integer, intent(in) :: origin
-    integer, intent(in) :: targ
-    type(epoch), intent(in) :: ep
-    type(exception), intent(inout), optional :: err
-    real(dp), dimension(6) :: st
-
-    type(exception) :: err_
-    integer :: segnum
-
-    segnum = getsegnum(s, origin, targ, err_)
-    if (iserror(err_)) then
-        call catch(err_, "getstate_epoch", __FILE__, __LINE__)
-        if (present(err)) then
-            err = err_
-            return
-        else
-            call raise(err_)
-        end if
-    end if
-
-    st = getstate_tdb(s, segnum, ep%jd, ep%jd1, err_)
-    if (iserror(err_)) then
-        call catch(err_, "getstate_epoch", __FILE__, __LINE__)
-        if (present(err)) then
-            err = err_
-            return
-        else
-            call raise(err_)
-        end if
-    end if
-end function getstate_epoch
-
-function getstate_highlevel(s, origin, targ, ep, err) result(st)
-    type(spk), intent(inout) :: s
-    character(len=*), intent(in) :: origin
-    character(len=*), intent(in) :: targ
-    type(epoch), intent(in) :: ep
-    type(exception), intent(inout), optional :: err
-    real(dp), dimension(6) :: st
-
-    type(exception) :: err_
-    integer :: segnum
-
-    segnum = getsegnum(s, naifid(origin), naifid(targ), err_)
-    if (iserror(err_)) then
-        call catch(err_, "getstate_highlevel", __FILE__, __LINE__)
-        if (present(err)) then
-            err = err_
-            return
-        else
-            call raise(err_)
-        end if
-    end if
-
-    st = getstate_tdb(s, segnum, ep%jd, ep%jd1, err_)
-    if (iserror(err_)) then
-        call catch(err_, "getstate_highlevel", __FILE__, __LINE__)
-        if (present(err)) then
-            err = err_
-            return
-        else
-            call raise(err_)
-        end if
-    end if
-end function getstate_highlevel
+    t = 2 * t / this%segments(segnum)%intervall
+    s(1:3) = matmul(this%segments(segnum)%cache, x)
+    s(4:6) = matmul(this%segments(segnum)%cache, t)
+end function jplephem_state_lowlevel
 
 function jd(sec) result(res)
     real(dp), intent(in) :: sec
@@ -670,8 +571,8 @@ function seconds(jd) result(res)
     res = (jd - 2451545) * seconds_per_day
 end function seconds
 
-function getsegnum(s, origin, targ, err) result(segnum)
-    type(spk), intent(in) :: s
+function getsegnum(this, origin, targ, err) result(segnum)
+    class(jplephem), intent(in) :: this
     integer, intent(in) :: origin
     integer, intent(in) :: targ
     type(exception), intent(inout), optional :: err
@@ -682,17 +583,21 @@ function getsegnum(s, origin, targ, err) result(segnum)
     character(len=8) :: tstr
     character(len=8) :: ostr
 
-    segnum = -1
+    segnum = -999
 
-    do i = 1, size(s%segments)
-        if (s%segments(i)%targ == targ .and. s%segments(i)%origin == origin) then
+    do i = 1, size(this%segments)
+        if (this%segments(i)%targ == targ .and. this%segments(i)%origin == origin) then
             segnum = i
+            return
+        elseif (this%segments(i)%targ == origin .and. this%segments(i)%origin == targ) then
+            segnum = -i
             return
         end if
     end do
     write(tstr,"(i8)") targ
     write(ostr,"(i8)") origin
-    err_ = error("No segment with origin="//trim(adjustl(ostr))//" and targ="//trim(adjustl(tstr))//" available.", &
+    err_ = error("No segment with origin="//trim(adjustl(ostr))//&
+        " and targ="//trim(adjustl(tstr))//" available.", &
         "getsegnum", __FILE__, __LINE__)
     if (present(err)) then
         err = err_
@@ -2502,4 +2407,4 @@ function naifid(str) result(nid)
     end select
 end function naifid
 
-end module ephemeris
+end module ephemerides
