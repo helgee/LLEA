@@ -37,7 +37,7 @@ use bodies, only: body
 use constants, only: earth
 use epochs, only: epochdelta, seconds, operator (+)
 use exceptions
-use forces, only: model, gravity, drag
+use forces, only: model, gravity, drag, thirdbody
 use math, only: eps, isapprox, norm, pih, cross, cot, linspace
 use states, only: state, framelen
 use trajectories, only: trajectory
@@ -90,7 +90,7 @@ type, extends(propagator) :: ode
     integer :: numstep = 100000
     class(gravity), allocatable :: gravity
     class(drag), allocatable :: drag
-    type(body), dimension(:), allocatable :: bodies
+    type(thirdbody) :: thirdbody
 contains
     procedure :: trajectory => ode_trajectory
     procedure :: state => ode_state
@@ -191,6 +191,7 @@ subroutine rhs(n, t, y, f, tnk)
     call c_f_pointer(tnk, p)
 
     call p%gravity%update(f, t, y)
+    call p%thirdbody%update(f, t, y)
     if (allocated(p%drag)) then
         call p%drag%update(f, t, y)
     end if

@@ -56,6 +56,13 @@ contains
     procedure :: update => j2gravity_update
 end type j2gravity
 
+type, extends(model) :: thirdbody
+    type(body), dimension(:), allocatable :: bodies
+contains
+    procedure :: eval => thirdbody_eval
+    procedure :: update => thirdbody_update
+end type thirdbody
+
 contains
 
 function uniformgravity_eval(this, t, y) result(f)
@@ -114,5 +121,28 @@ subroutine j2gravity_update(this, f, t, y)
     f(4:5) = -this%center%mu * y(1:2) / r3 + pj * y(1:2) * (1._dp - 5._dp * y(3)*y(3) / r2)
     f(6) = -this%center%mu * y(3) / r3 + pj * y(3) * (3._dp - 5._dp * y(3)*y(3) / r2)
 end subroutine j2gravity_update
+
+function thirdbody_eval(this, t, y) result(f)
+    class(thirdbody), intent(in) :: this
+    real(dp), intent(in) :: t
+    real(dp), dimension(:), intent(in) :: y
+    real(dp), dimension(:), allocatable :: f
+
+    allocate(f(6))
+    call this%update(f, t, y)
+end function thirdbody_eval
+
+subroutine thirdbody_update(this, f, t, y)
+    class(thirdbody), intent(in) :: this
+    real(dp), dimension(:), intent(inout) :: f
+    real(dp), intent(in) :: t
+    real(dp), dimension(:), intent(in) :: y
+
+    integer :: i
+    if (allocated(this%bodies)) then
+        do i = 1, size(this%bodies)
+        end do
+    end if
+end subroutine thirdbody_update
 
 end module forces
