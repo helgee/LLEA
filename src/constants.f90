@@ -1,3 +1,10 @@
+!
+! Copyright (c) 2016 Helge Eichhorn
+!
+! This Source Code Form is subject to the terms of the Mozilla Public
+! License, v. 2.0. If a copy of the MPL was not distributed with this
+! file, You can obtain one at http://mozilla.org/MPL/2.0/.
+!
 module constants
 
 use types, only: dp
@@ -19,13 +26,13 @@ type(body) :: neptune
 
 ! satellites
 type(body) :: moon
-!DEC$ ATTRIBUTES DLLEXPORT :: mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, moon, au
 
 real(dp), parameter :: au = 0.149597870700000000e+09_dp
 
 private
 
 public :: mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, moon, au, init_constants
+!DEC$ ATTRIBUTES DLLEXPORT :: mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, moon, au, init_constants
 
 contains
 

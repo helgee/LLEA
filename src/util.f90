@@ -1,8 +1,10 @@
-! Package: util
-!   Utility subroutines.
 !
-! Author:
-!   Helge Eichhorn - helge@helgeeichhorn.de
+! Copyright (c) 2016 Helge Eichhorn
+!
+! This Source Code Form is subject to the terms of the Mozilla Public
+! License, v. 2.0. If a copy of the MPL was not distributed with this
+! file, You can obtain one at http://mozilla.org/MPL/2.0/.
+!
 module util
 
 use, intrinsic :: iso_fortran_env, only: error_unit
@@ -277,35 +279,5 @@ subroutine warning(str)
     character(len=*), intent(in) :: str
     write(error_unit,*) str
 end subroutine warning
-
-! Function: newunit
-!   Get the next free logical unit number.
-!
-! Source:
-!   http://fortran90.org/src/best-practices.html#file-input-output
-!
-! Parameters:
-!   unit - Integer variable for the new unit number
-!
-! Returns:
-!   n - Unit number
-integer function newunit(unit) result(n)
-    ! Returns lowest i/o unit number not in use
-    integer, intent(out), optional :: unit
-    logical :: inuse
-
-    ! Avoid lower numbers which are sometimes reserved
-    integer, parameter :: nmin=10
-    ! May be system-dependent
-    integer, parameter :: nmax=999
-    do n = nmin, nmax
-        inquire(unit=n, opened=inuse)
-        if (.not. inuse) then
-            if (present(unit)) unit=n
-            return
-        end if
-    end do
-    call stop_error("newunit ERROR: available unit not found.")
-end function
 
 end module util
