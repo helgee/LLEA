@@ -22,11 +22,6 @@ interface ratematrix
     module procedure ratematrix_euler
 end interface ratematrix
 
-private
-
-public :: rotationmatrix, ratematrix
-!DEC$ ATTRIBUTES DLLEXPORT :: rotationmatrix, ratematrix
-
 contains
 
 function checkaxes(axes) result(err)

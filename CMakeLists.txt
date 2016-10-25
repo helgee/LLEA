@@ -4,6 +4,10 @@ project(LLEA Fortran)
 enable_language(Fortran)
 enable_testing()
 
+if(WIN32)
+	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS true CACHE BOOL "blob")
+endif()
+
 include(cmake/data.cmake)
 include(cmake/flags.cmake)
 include(deps/deps.cmake)

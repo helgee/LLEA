@@ -10,6 +10,5 @@ module types
 implicit none
 
 integer, parameter :: dp = kind(0.d0)
-!DEC$ ATTRIBUTES DLLEXPORT :: dp
 
 end module types

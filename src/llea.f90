@@ -23,11 +23,6 @@ use util
 
 implicit none
 
-private
-
-public :: init_llea, init_llea_c
-!DEC$ ATTRIBUTES DLLEXPORT :: init_llea, init_llea_c
-
 contains
 
 function init_llea() result(code)

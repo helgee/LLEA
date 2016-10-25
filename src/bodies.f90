@@ -18,7 +18,6 @@ private
 
 public :: body, rightascension, rightascensionrate, declination, declinationrate, rotationangle, rotationrate, &
     iaumatrix
-!DEC$ ATTRIBUTES DLLEXPORT :: body, rightascension, rightascensionrate, declination, declinationrate, rotationangle, rotationrate, iaumatrix
 
 type body
     real(dp) :: mu = 0._dp

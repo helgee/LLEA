@@ -55,14 +55,6 @@ public :: pih, pi, twopi, deg, rad, &
     interp, findroot, isapprox, &
     issorted, greatcircle, deg2rad, rad2deg, cot
 
-!DEC$ ATTRIBUTES DLLEXPORT :: pih, pi, twopi, deg, rad
-!DEC$ ATTRIBUTES DLLEXPORT :: eps, cross, unitmat, mod2pi
-!DEC$ ATTRIBUTES DLLEXPORT :: vecang, polcart, cartpol, norm
-!DEC$ ATTRIBUTES DLLEXPORT :: getsign, binsearch, linspace
-!DEC$ ATTRIBUTES DLLEXPORT :: interp, findroot, isapprox
-!DEC$ ATTRIBUTES DLLEXPORT :: issorted, greatcircle, deg2rad
-!DEC$ ATTRIBUTES DLLEXPORT :: rad2deg, cot
-
 ! Constants: Mathematical constants
 !
 !   eps - Machine epsilon for double precision.

@@ -79,11 +79,6 @@ real(dp) :: hout5
 !$omp threadprivate(xold8, hout8)
 !$omp threadprivate(xold5, hout5)
 
-private
-
-public :: c_dop853, c_dopri5, dop853, dopri5, contd8, contd5
-!DEC$ ATTRIBUTES DLLEXPORT :: c_dop853, c_dopri5, dop853, dopri5, contd8, contd5
-
 contains
 
 subroutine c_dop853(n, cfcn, x, y, xend, rtol, atol,&
