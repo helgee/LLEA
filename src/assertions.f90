@@ -19,6 +19,7 @@ private
 
 public :: assert, assert_false, assert_equal, assert_not_equal,&
     assert_almost_equal, assert_raises
+!DEC$ ATTRIBUTES DLLEXPORT :: assert, assert_false, assert_equal, assert_not_equal, assert_almost_equal, assert_raises
 
 interface assert_equal
     module procedure assert_equal_character

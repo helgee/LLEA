@@ -16,6 +16,9 @@ private
 public :: epoch, epochdelta, juliandate, jd2000, &
     operator (+), operator (-), seconds_per_day, mjd2000, days, seconds, calendardate, isostring, &
     datetime, to_datetime, days_per_century, seconds_per_century, centuries
+!DEC$ ATTRIBUTES DLLEXPORT :: epoch, epochdelta, juliandate, jd2000, seconds_per_day, mjd2000, days
+!DEC$ ATTRIBUTES DLLEXPORT :: seconds, calendardate, isostring, datetime, to_datetime, days_per_century
+!DEC$ ATTRIBUTES DLLEXPORT :: seconds_per_century, centuries
 
 real(dp), parameter :: seconds_per_day = 86400._dp
 real(dp), parameter :: days_per_century = 36525._dp

@@ -112,6 +112,7 @@ class(ephemeris), allocatable :: ephem
 private
 
 public :: daf, jplephem, ephemeris, ephem, naifid, init_ephemeris, getpath
+!DEC$ ATTRIBUTES DLLEXPORT :: daf, jplephem, ephemeris, ephem, naifid, init_ephemeris, getpath
 
 contains
 

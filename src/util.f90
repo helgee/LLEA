@@ -30,6 +30,8 @@ private
 
 public :: stop_error, newunit, printbool, joinpath, sep, mode_open,&
     timestamp_file, uppercase, projectdir
+!DEC$ ATTRIBUTES DLLEXPORT :: stop_error, newunit, printbool, joinpath, sep
+!DEC$ ATTRIBUTES DLLEXPORT :: timestamp_file, uppercase, projectdir, mode_open
 
 contains
 
