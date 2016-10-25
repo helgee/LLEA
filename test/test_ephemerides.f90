@@ -143,6 +143,10 @@ function teststate(ephem, targ, tdb, err) result(st)
     real(dp), dimension(6) :: st1
     real(dp), dimension(6) :: st2
 
+    st = 0._dp
+    st1 = 0._dp
+    st2 = 0._dp
+
     if (targ == 3) then
         st1 = getstate(ephem, tdb, 3, 0, err=err)
         if (iserror(err)) return
@@ -159,7 +163,7 @@ function teststate(ephem, targ, tdb, err) result(st)
         st = getstate(ephem, tdb, 10, 0, err=err)
         if (iserror(err)) return
     else if (targ == 12) then
-        st = 0._dp
+        continue
     else if (targ == 13) then
         st = getstate(ephem, tdb, 3, 0, err=err)
         if (iserror(err)) return
