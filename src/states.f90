@@ -47,7 +47,7 @@ integer, parameter :: framelen = 8
 type state
     type(epoch) :: ep
     real(dp), dimension(6) :: rv = 0._dp
-    character(len=:), allocatable :: frame
+    character(len=framelen) :: frame
     type(body) :: center
 end type state
 

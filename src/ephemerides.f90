@@ -161,10 +161,10 @@ function new_jplephem(path, err) result(eph)
     nsegments = 0
     next = eph%daffile%first
     do while (next /= 0)
-		open(newunit=u, file=eph%daffile%path, status="old", form="unformatted", access="stream", &
+        open(newunit=u, file=eph%daffile%path, status="old", form="unformatted", access="stream", &
             action="read", convert=eph%daffile%endianness)
-		pos = 1024 * (next - 1) + 1
-		read(u,pos=pos) next_dp, prev_dp, nsum_dp
+        pos = 1024 * (next - 1) + 1
+        read(u,pos=pos) next_dp, prev_dp, nsum_dp
         close(u)
         next = int(next_dp)
         prev = int(prev_dp)
@@ -179,7 +179,7 @@ function new_jplephem(path, err) result(eph)
         open(newunit=u, file=eph%daffile%path, status="old", form="unformatted", access="stream", &
             action="read", convert=eph%daffile%endianness)
         pos = 1024 * (next - 1) + 1
-		read(u,pos=pos) next_dp, prev_dp, nsum_dp
+        read(u,pos=pos) next_dp, prev_dp, nsum_dp
         close(u)
         nsum = int(nsum_dp)
         open(newunit=u, file=eph%daffile%path, status="old", form="unformatted", access="stream", &
