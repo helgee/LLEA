@@ -112,7 +112,6 @@ subroutine init_ephemeris(denum)
     character(len=3), intent(in), optional :: denum
 
     character(len=3) :: denum_
-    character(len=:), allocatable :: path
 
     denum_ = "430"
     if (present(denum)) denum_ = denum
