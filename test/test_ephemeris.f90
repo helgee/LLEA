@@ -101,6 +101,7 @@ subroutine jpltest(eph, path)
     type(epoch) :: ep
 
     stat = 0
+    tmp = ""
 
     open(newunit=u, file=path, status="old")
     do while (tmp /= "EOT")
@@ -129,6 +130,7 @@ subroutine jpltest(eph, path)
 
         call assert_almost_equal(st(x), val, __LINE__, atol=1e-13_dp)
     end do
+    close(u)
 end subroutine jpltest
 
 function teststate(eph, targ, tdb, err) result(st)
