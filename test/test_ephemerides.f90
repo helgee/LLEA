@@ -80,8 +80,8 @@ call jpltest(eph, path)
 
 contains
 
-subroutine jpltest(eph, path)
-    type(jplephem), intent(inout) :: eph
+subroutine jpltest(ephem, path)
+    type(jplephem), intent(inout) :: ephem
     character(len=*), intent(in) :: path
 
     integer :: u
@@ -113,12 +113,12 @@ subroutine jpltest(eph, path)
         if ((t == 14).or.(t == 15)) cycle
 
         ep = epoch(jed)
-        ts = teststate(eph, t, ep, err)
+        ts = teststate(ephem, t, ep, err)
         if (iserror(err).and.hasid(err, "OutOfRangeError")) then
             call reset(err)
             cycle
         end if
-        cs = teststate(eph, c, ep, err)
+        cs = teststate(ephem, c, ep, err)
         if (iserror(err).and.hasid(err, "OutOfRangeError")) then
             call reset(err)
             cycle
@@ -133,8 +133,8 @@ subroutine jpltest(eph, path)
     close(u)
 end subroutine jpltest
 
-function teststate(eph, targ, tdb, err) result(st)
-    type(jplephem), intent(inout) :: eph
+function teststate(ephem, targ, tdb, err) result(st)
+    type(jplephem), intent(inout) :: ephem
     integer, intent(in) :: targ
     type(epoch), intent(in) :: tdb
     type(exception) :: err
@@ -144,27 +144,27 @@ function teststate(eph, targ, tdb, err) result(st)
     real(dp), dimension(6) :: st2
 
     if (targ == 3) then
-        st1 = getstate(eph, tdb, 3, 0, err=err)
+        st1 = getstate(ephem, tdb, 3, 0, err=err)
         if (iserror(err)) return
-        st2 = getstate(eph, tdb, 399, 3, err=err)
+        st2 = getstate(ephem, tdb, 399, 3, err=err)
         if (iserror(err)) return
         st = st1 + st2
     else if (targ == 10) then
-        st1 = getstate(eph, tdb, 3, 0, err=err)
+        st1 = getstate(ephem, tdb, 3, 0, err=err)
         if (iserror(err)) return
-        st2 = getstate(eph, tdb, 301, 3, err=err)
+        st2 = getstate(ephem, tdb, 301, 3, err=err)
         if (iserror(err)) return
         st = st1 + st2
     else if (targ == 11) then
-        st = getstate(eph, tdb, 10, 0, err=err)
+        st = getstate(ephem, tdb, 10, 0, err=err)
         if (iserror(err)) return
     else if (targ == 12) then
         st = 0._dp
     else if (targ == 13) then
-        st = getstate(eph, tdb, 3, 0, err=err)
+        st = getstate(ephem, tdb, 3, 0, err=err)
         if (iserror(err)) return
     else
-        st = getstate(eph, tdb, targ, 0, err=err)
+        st = getstate(ephem, tdb, targ, 0, err=err)
         if (iserror(err)) return
     end if
 end function teststate
