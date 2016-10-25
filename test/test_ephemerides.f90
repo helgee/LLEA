@@ -144,27 +144,27 @@ function teststate(eph, targ, tdb, err) result(st)
     real(dp), dimension(6) :: st2
 
     if (targ == 3) then
-        st1 = eph%state(tdb, 3, 0, err=err)
+        st1 = getstate(eph, tdb, 3, 0, err=err)
         if (iserror(err)) return
-        st2 = eph%state(tdb, 399, 3, err=err)
+        st2 = getstate(eph, tdb, 399, 3, err=err)
         if (iserror(err)) return
         st = st1 + st2
     else if (targ == 10) then
-        st1 = eph%state(tdb, 3, 0, err=err)
+        st1 = getstate(eph, tdb, 3, 0, err=err)
         if (iserror(err)) return
-        st2 = eph%state(tdb, 301, 3, err=err)
+        st2 = getstate(eph, tdb, 301, 3, err=err)
         if (iserror(err)) return
         st = st1 + st2
     else if (targ == 11) then
-        st = eph%state(tdb, 10, 0, err=err)
+        st = getstate(eph, tdb, 10, 0, err=err)
         if (iserror(err)) return
     else if (targ == 12) then
         st = 0._dp
     else if (targ == 13) then
-        st = eph%state(tdb, 3, 0, err=err)
+        st = getstate(eph, tdb, 3, 0, err=err)
         if (iserror(err)) return
     else
-        st = eph%state(tdb, targ, 0, err=err)
+        st = getstate(eph, tdb, targ, 0, err=err)
         if (iserror(err)) return
     end if
 end function teststate
