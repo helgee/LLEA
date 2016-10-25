@@ -480,12 +480,14 @@ subroutine coefficients(eph, segnum, tdb, tdb2, x, twotc, err)
         recordnum = recordnum - 1
         frac = seg%intervall
     end if
-    if (recordnum /= seg%cachedrecord.or..not.allocated(seg%cache)) then
+    if (recordnum /= seg%cachedrecord) then
         pos = dp * (seg%firstaddr + seg%recordsize * recordnum + 1) + 1
         open(newunit=u, file=eph%daffile%path, status="old", form="unformatted", access="stream", &
             action="read", convert=eph%daffile%endianness)
         read(u,pos=pos) c
         close(u)
+        if (allocated(seg%cache)) deallocate(seg%cache)
+        allocate(seg%cache(components, order))
         seg%cache = transpose(reshape(c, [order, components]))
         seg%cachedrecord = recordnum
     end if
