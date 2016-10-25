@@ -8,13 +8,16 @@
 module forces
 
 use bodies, only: body
-use constants, only: earth
+use ephemerides, only: ephem, getposition
+use epochs, only: epoch, epochdelta, operator(+)
 use math, only: norm
+use states, only: state
 use types, only: dp
 
 implicit none
 
 type, abstract :: model
+    type(state) :: s0
     type(body) :: center
 contains
     procedure(eval), deferred :: eval
@@ -139,8 +142,18 @@ subroutine thirdbody_update(this, f, t, y)
     real(dp), dimension(:), intent(in) :: y
 
     integer :: i
+    real(dp) :: mu
+    real(dp), dimension(3) :: rc3
+    real(dp), dimension(3) :: rs3
+    type(epoch) :: ep
+
+    ep = this%s0%ep + epochdelta(seconds=t)
     if (allocated(this%bodies)) then
         do i = 1, size(this%bodies)
+            mu = this%bodies(i)%mu
+            rc3 = getposition(ephem, ep, from=this%center%id, to=this%bodies(i)%id)
+            rs3 = y(1:3) - rc3
+            f(4:6) = f(4:6) + mu * (rs3 / norm(rs3)**3 - rc3 / norm(rc3)**3)
         end do
     end if
 end subroutine thirdbody_update

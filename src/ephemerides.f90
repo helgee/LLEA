@@ -133,7 +133,7 @@ public :: daf, jplephem, ephemeris, ephem, naifid, init_ephemeris, getpath, &
 contains
 
 function getposition_jplephem_name(eph, ep, to, from, err) result(r)
-    type(jplephem), intent(inout) :: eph
+    class(ephemeris), intent(inout) :: eph
     type(epoch), intent(in) :: ep
     character(len=*), intent(in) :: to
     character(len=*), intent(in), optional :: from
@@ -168,7 +168,10 @@ function getposition_jplephem_name(eph, ep, to, from, err) result(r)
             end if
         end if
     end if
-    r = eph%position(ep, to_, from_, err_)
+    select type (eph)
+    class is (ephemeris)
+        r = eph%position(ep, to_, from_, err_)
+    end select
     if (iserror(err_)) then
         call catch(err_, "getposition_jplephem_name", __FILE__, __LINE__)
         if (present(err)) then
@@ -181,7 +184,7 @@ function getposition_jplephem_name(eph, ep, to, from, err) result(r)
 end function getposition_jplephem_name
 
 function getposition_jplephem_id(eph, ep, to, from, err) result(r)
-    type(jplephem), intent(inout) :: eph
+    class(ephemeris), intent(inout) :: eph
     type(epoch), intent(in) :: ep
     integer, intent(in) :: to
     integer, intent(in), optional :: from
@@ -194,7 +197,10 @@ function getposition_jplephem_id(eph, ep, to, from, err) result(r)
     r = 0._dp
     from_ = 0
     if (present(from)) from_ = from
-    r = eph%position(ep, to, from_, err_)
+    select type (eph)
+    class is (ephemeris)
+        r = eph%position(ep, to, from_, err_)
+    end select
     if (iserror(err_)) then
         call catch(err_, "getposition_jplephem_id", __FILE__, __LINE__)
         if (present(err)) then

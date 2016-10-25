@@ -90,7 +90,7 @@ type, extends(propagator) :: ode
     integer :: numstep = 100000
     class(gravity), allocatable :: gravity
     class(drag), allocatable :: drag
-    type(thirdbody) :: thirdbody
+    class(model), allocatable :: thirdbody
 contains
     procedure :: trajectory => ode_trajectory
     procedure :: state => ode_state
@@ -101,6 +101,23 @@ private
 public :: kepler, solve_kepler, getstate, gettrajectory
 
 contains
+
+subroutine rhs(n, t, y, f, tnk)
+    integer, intent(in) :: n
+    real(dp), intent(in) :: t
+    real(dp), dimension(:), intent(in) :: y
+    real(dp), dimension(:), intent(out) :: f
+    type(c_ptr), intent(in) :: tnk
+
+    type(ode), pointer :: p
+    call c_f_pointer(tnk, p)
+
+    call p%gravity%update(f, t, y)
+    call p%thirdbody%update(f, t, y)
+    if (allocated(p%drag)) then
+        call p%drag%update(f, t, y)
+    end if
+end subroutine rhs
 
 function getstate(s0, dt, p, err) result(s)
     type(state), intent(in) :: s0
@@ -179,23 +196,6 @@ function ode_state(p, s0, epd, err) result(s1)
 
     type(exception) :: err_
 end function ode_state
-
-subroutine rhs(n, t, y, f, tnk)
-    integer, intent(in) :: n
-    real(dp), intent(in) :: t
-    real(dp), dimension(:), intent(in) :: y
-    real(dp), dimension(:), intent(out) :: f
-    type(c_ptr), intent(in) :: tnk
-
-    type(ode), pointer :: p
-    call c_f_pointer(tnk, p)
-
-    call p%gravity%update(f, t, y)
-    call p%thirdbody%update(f, t, y)
-    if (allocated(p%drag)) then
-        call p%drag%update(f, t, y)
-    end if
-end subroutine rhs
 
 function kepler_trajectory(p, s0, epd, err) result(tra)
     class(kepler), intent(in) :: p
