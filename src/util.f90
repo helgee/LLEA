@@ -28,7 +28,7 @@ end interface joinpath
 
 private
 
-public :: stop_error, newunit, printbool, joinpath, sep, mode_open,&
+public :: stop_error, printbool, joinpath, sep, mode_open,&
     timestamp_file, uppercase, projectdir
 
 contains
@@ -109,11 +109,11 @@ function mode_open(filename, mode) result(u)
     integer :: u
 
     if (mode == "w") then
-        open(unit=newunit(u), file=filename, status="replace", action="write")
+        open(newunit=u, file=filename, status="replace", action="write")
     else if (mode == "a") then
-        open(unit=newunit(u), file=filename, status="old", position="append")
+        open(newunit=u, file=filename, status="old", position="append")
     else if (mode == "r") then
-        open(unit=newunit(u), file=filename, status="old", action="read")
+        open(newunit=u, file=filename, status="old", action="read")
     end if
 end function mode_open
 
