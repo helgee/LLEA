@@ -108,6 +108,7 @@ subroutine jpltest(eph, path)
     end do
     do while (stat == 0)
         read(u, *, iostat=stat) de, date, jed, t, c, x, val
+        write(*, *) de, date, jed, t, c, x, val
         if ((t == 14).or.(t == 15)) cycle
 
         ep = epoch(jed)
@@ -130,8 +131,8 @@ subroutine jpltest(eph, path)
     end do
 end subroutine jpltest
 
-function teststate(s, targ, tdb, err) result(st)
-    type(jplephem), intent(inout) :: s
+function teststate(eph, targ, tdb, err) result(st)
+    type(jplephem), intent(inout) :: eph
     integer, intent(in) :: targ
     type(epoch), intent(in) :: tdb
     type(exception) :: err
