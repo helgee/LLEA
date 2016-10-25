@@ -10,6 +10,7 @@ set(LLEA_SRCS
     src/integrators.f90
     src/llea.f90
     src/math.f90
+    src/naif.f90
     src/propagators.f90
     src/rotations.f90
     src/states.f90

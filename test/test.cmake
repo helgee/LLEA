@@ -6,9 +6,9 @@ add_executable(test_exceptions test/test_exceptions.f90)
 target_link_libraries(test_exceptions llea)
 add_test(TEST_EXCEPTIONS test_exceptions)
 
-add_executable(test_ephemeris test/test_ephemeris.f90)
-target_link_libraries(test_ephemeris llea)
-add_test(TEST_EPHEMERIS test_ephemeris)
+add_executable(test_ephemerides test/test_ephemerides.f90)
+target_link_libraries(test_ephemerides llea)
+add_test(TEST_EPHEMERIDES test_ephemerides)
 
 add_executable(test_epochs test/test_epochs.f90)
 target_link_libraries(test_epochs llea)
