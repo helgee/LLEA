@@ -75,6 +75,7 @@ eph = jplephem(path)
 res6 = eph%state(ep, 1)
 call assert_almost_equal(res6, ref405, __LINE__)
 
+print *, eph%daffile%name
 path = joinpath(projectdir("data"), "testpo.405")
 call jpltest(eph, path)
 
@@ -109,7 +110,6 @@ subroutine jpltest(ephem, path)
     end do
     do while (stat == 0)
         read(u, *, iostat=stat) de, date, jed, t, c, x, val
-        write(*, *) de, date, jed, t, c, x, val
         if ((t == 14).or.(t == 15)) cycle
 
         ep = epoch(jed)

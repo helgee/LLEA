@@ -603,6 +603,7 @@ function jplephem_position_lowlevel(this, tdb, tdb2, segnum, err) result(r)
     real(dp) :: twotc
     type(exception) :: err_
 
+    r = 0._dp
     call this%coefficients(segnum, tdb, tdb2, x, twotc, err_)
     if (iserror(err_)) then
         call catch(err_, "jplephem_position_lowlevel", __FILE__, __LINE__)
@@ -668,6 +669,7 @@ function jplephem_velocity_lowlevel(this, tdb, tdb2, segnum, err) result(v)
     integer :: i
     type(exception) :: err_
 
+    v = 0._dp
     call this%coefficients(segnum, tdb, tdb2, x, twotc, err_)
     if (iserror(err_)) then
         call catch(err_, "jplephem_velocity_lowlevel", __FILE__, __LINE__)
@@ -744,6 +746,7 @@ function jplephem_state_lowlevel(this, tdb, tdb2, segnum, err) result(s)
     integer :: i
     type(exception) :: err_
 
+    s = 0._dp
     call this%coefficients(segnum, tdb, tdb2, x, twotc, err_)
     if (iserror(err_)) then
         call catch(err_, "jplephem_state_lowlevel", __FILE__, __LINE__)
