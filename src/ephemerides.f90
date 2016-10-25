@@ -144,6 +144,7 @@ function getposition_jplephem_name(eph, ep, to, from, err) result(r)
     integer :: to_
     integer :: from_
 
+    r = 0._dp
     to_ = naifid(to, err_)
     if (iserror(err_)) then
         call catch(err_, "getposition_jplephem_name", __FILE__, __LINE__)
@@ -190,6 +191,7 @@ function getposition_jplephem_id(eph, ep, to, from, err) result(r)
     type(exception) :: err_
     integer :: from_
 
+    r = 0._dp
     from_ = 0
     if (present(from)) from_ = from
     r = eph%position(ep, to, from_, err_)
@@ -216,6 +218,7 @@ function getvelocity_jplephem_name(eph, ep, to, from, err) result(r)
     integer :: to_
     integer :: from_
 
+    r = 0._dp
     to_ = naifid(to, err_)
     if (iserror(err_)) then
         call catch(err_, "getvelocity_jplephem_name", __FILE__, __LINE__)
@@ -262,6 +265,7 @@ function getvelocity_jplephem_id(eph, ep, to, from, err) result(r)
     type(exception) :: err_
     integer :: from_
 
+    r = 0._dp
     from_ = 0
     if (present(from)) from_ = from
     r = eph%velocity(ep, to, from_, err_)
@@ -288,6 +292,7 @@ function getstate_jplephem_name(eph, ep, to, from, err) result(r)
     integer :: to_
     integer :: from_
 
+    r = 0._dp
     to_ = naifid(to, err_)
     if (iserror(err_)) then
         call catch(err_, "getstate_jplephem_name", __FILE__, __LINE__)
@@ -334,6 +339,7 @@ function getstate_jplephem_id(eph, ep, to, from, err) result(r)
     type(exception) :: err_
     integer :: from_
 
+    r = 0._dp
     from_ = 0
     if (present(from)) from_ = from
     r = eph%state(ep, to, from_, err_)
