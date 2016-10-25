@@ -32,7 +32,7 @@ real(dp), parameter :: au = 0.149597870700000000e+09_dp
 private
 
 public :: mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, moon, au, init_constants
-!DEC$ ATTRIBUTES DLLEXPORT :: mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, moon, au, init_constants
+!DEC$ ATTRIBUTES DLLEXPORT :: mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, moon, au
 
 contains
 
