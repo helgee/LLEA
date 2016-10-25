@@ -69,7 +69,7 @@ contains
 function state_init(ep, rv, frame, center) result(s)
     type(epoch), intent(in) :: ep
     real(dp), dimension(:), intent(in) :: rv
-    character(len=framelen), intent(in), optional :: frame
+    character(len=*), intent(in), optional :: frame
     type(body), intent(in), optional :: center
     type(state) :: s
 
