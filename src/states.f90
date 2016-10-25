@@ -47,7 +47,7 @@ integer, parameter :: framelen = 8
 type state
     type(epoch) :: ep
     real(dp), dimension(6) :: rv = 0._dp
-    character(len=framelen) :: frame = "GCRF"
+    character(len=:), allocatable :: frame
     type(body) :: center
 end type state
 
@@ -75,6 +75,7 @@ function state_init(ep, rv, frame, center) result(s)
 
     s%ep = ep
     s%rv = rv
+    s%frame = "GCRF"
     if (present(frame)) s%frame = frame
     s%center = earth
     if (present(center)) s%center = center
@@ -251,18 +252,12 @@ function state_from_elements(ep, ele, frame, center) result(s)
     type(body), intent(in), optional :: center
 
     type(state) :: s
-    character(len=framelen) :: frame_
-    type(body) :: center_
     real(dp), dimension(6) :: rv
-
-    frame_ = "GCRF"
-    if (present(frame)) frame_ = frame
-    center_ = earth
-    if (present(center)) center_ = center
 
     rv = cartesian(ele, center%mu)
     s%ep = ep
     s%rv = rv
+    s%frame = "GCRF"
     if (present(frame)) s%frame = frame
     s%center = earth
     if (present(center)) s%center = center

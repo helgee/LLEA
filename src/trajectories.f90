@@ -47,12 +47,30 @@ function new_trajectory_array(s0, t, arr, fields) result(tra)
     integer :: n
 
     n = size(t)
-    tra%fields = ["x ", "y ", "z ", "vx", "vy", "vz"]
-    if (present(fields)) tra%fields = fields
+    call setfields(tra, ["x ", "y ", "z ", "vx", "vy", "vz"])
+    if (present(fields)) call setfields(tra, fields)
     tra%initial_state = s0
     tra%vectors = arr
     tra%tindex = t
     tra%final_state = state(s0%ep + epochdelta(seconds=t(n)), arr(n, :), s0%frame, s0%center)
 end function new_trajectory_array
+
+subroutine setfields(tra, fields)
+    type(trajectory), intent(inout) :: tra
+    character(len=*), dimension(:), intent(in) :: fields
+
+    integer :: i
+    integer :: n
+
+    n = size(fields)
+    allocate(tra%fields(n))
+    do i = 1, n
+        if (len(fields(i)) < fieldlen) then
+            tra%fields(i) = fields(i) // repeat(" ", fieldlen - len(fields(i)))
+        else
+            tra%fields(i) = fields(i)
+        end if
+    end do
+end subroutine setfields
 
 end module trajectories
