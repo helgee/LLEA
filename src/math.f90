@@ -41,6 +41,7 @@
 !
 module math
 
+use, intrinsic :: iso_c_binding, only: c_ptr, c_null_ptr
 use types, only: dp
 use exceptions
 
@@ -553,28 +554,27 @@ end function interp
 !
 ! Returns:
 !   root - Root of the function.
-function findroot(fun, xa, xb, rpar, ipar, xtol, rtol, max_iter, err)&
+function findroot(fun, xa, xb, thunk, xtol, rtol, max_iter, err)&
         result(root)
     interface
-        real(dp) function fun(x, rpar, ipar)
-            use types, only: dp
+        real(dp) function fun(x, thunk)
+            import :: dp, c_ptr
             real(dp), intent(in) :: x
-            real(dp), dimension(:), intent(in) :: rpar
-            integer, dimension(:), intent(in) :: ipar
+            type(c_ptr), intent(in) :: thunk
         end function fun
     end interface
     real(dp), intent(in) :: xa
     real(dp), intent(in) :: xb
-    real(dp), dimension(:), intent(in) :: rpar
-    integer, dimension(:), intent(in) :: ipar
+    type(c_ptr), intent(in), optional :: thunk
     real(dp), intent(in), optional :: xtol
     real(dp), intent(in), optional :: rtol
     integer, intent(in), optional :: max_iter
-    type(exception), intent(out), optional :: err
+    type(exception), intent(inout), optional :: err
 
     real(dp) :: root
 
     type(exception) :: err_
+    type(c_ptr) :: thunk_
 
     real(dp) :: fpre
     real(dp) :: fcur
@@ -595,6 +595,8 @@ function findroot(fun, xa, xb, rpar, ipar, xtol, rtol, max_iter, err)&
     integer :: max_iter_
     integer :: i
 
+    thunk_ = c_null_ptr
+    if (present(thunk)) thunk_ = thunk
     i = 0
     fblk = 0._dp
     xblk = 0._dp
@@ -613,8 +615,8 @@ function findroot(fun, xa, xb, rpar, ipar, xtol, rtol, max_iter, err)&
     rtol_ = sqrt(eps)
     if (present(rtol)) rtol_ = rtol
 
-    fpre = fun(xpre, rpar, ipar)
-    fcur = fun(xcur, rpar, ipar)
+    fpre = fun(xpre, thunk_)
+    fcur = fun(xcur, thunk_)
 
     if (fpre * fcur > 0._dp) then
         err_ = error("Root not in bracket.", "findroot", __FILE__, __LINE__)
@@ -692,7 +694,7 @@ function findroot(fun, xa, xb, rpar, ipar, xtol, rtol, max_iter, err)&
             if (sbis < 0._dp) xcur = xcur - tol
         end if
 
-        fcur = fun(xcur, rpar, ipar)
+        fcur = fun(xcur, thunk_)
 
         i = i + 1
     end do

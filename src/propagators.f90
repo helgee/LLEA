@@ -35,6 +35,7 @@ module propagators
 use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_loc
 use bodies, only: body
 use constants, only: earth
+use containers, only: parameters
 use epochs, only: epochdelta, seconds, operator (+)
 use events, only: discontinuity
 use exceptions
@@ -97,6 +98,7 @@ type, extends(propagator) :: ode
     class(model), allocatable :: thirdbody
     logical :: savetrajectory = .false.
     type(discontinuity), dimension(:), allocatable :: discontinuities
+    type(parameters) :: parameters
 contains
     procedure :: trajectory => ode_trajectory
     procedure :: state => ode_state
@@ -131,7 +133,7 @@ function ode_init(frame, integrator, center, maxstep, numstep, gravmodel, dragmo
     if (present(center)) p%center = center
     if (present(maxstep)) p%maxstep = maxstep
     if (present(numstep)) p%numstep = numstep
-    grav = uniformgravity(earth)
+    grav = uniformgravity()
     allocate(p%gravity, source=grav)
     if (present(gravmodel)) allocate(p%gravity, source=gravmodel)
     if (present(dragmodel)) allocate(p%drag, source=dragmodel)
@@ -149,12 +151,12 @@ subroutine rhs(n, t, y, f, tnk)
     call c_f_pointer(tnk, p)
 
     f = 0._dp
-    call p%gravity%update(f, t, y)
+    call p%gravity%update(f, t, y, p%parameters)
     if (allocated(p%thirdbody)) then
-        call p%thirdbody%update(f, t, y)
+        call p%thirdbody%update(f, t, y, p%parameters)
     end if
     if (allocated(p%drag)) then
-        call p%drag%update(f, t, y)
+        call p%drag%update(f, t, y, p%parameters)
     end if
 end subroutine rhs
 
@@ -268,6 +270,7 @@ function ode_state(p, s0, epd, err) result(s1)
     real(dp) :: t
     real(dp) :: tend
 
+    p%parameters = parameters(s0, p%frame, p%center)
     p_ => null()
     ! Gfortran workaround
     select type (p)

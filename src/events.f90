@@ -7,6 +7,7 @@
 !
 module events
 
+use containers, only: parameters
 use types, only: dp
 
 implicit none
@@ -16,7 +17,31 @@ private
 public :: event, update, discontinuity
 
 type, abstract :: event
+    real(dp), allocatable :: t
+contains
+    procedure(abstract_haspassed), deferred :: haspassed
+    procedure(abstract_detect), deferred :: detect
 end type event
+
+abstract interface
+    function abstract_haspassed(this, told, t, yold, y, p) result(res)
+        import :: event, dp, parameters
+        class(event), intent(in) :: this
+        real(dp), intent(in) :: told
+        real(dp), intent(in) :: t
+        real(dp), intent(in) :: yold
+        real(dp), intent(in) :: y
+        type(parameters), intent(in) :: p
+        logical :: res
+    end function abstract_haspassed
+
+    function abstract_detect(this, t, p) result(res)
+        import :: event, dp, parameters
+        class(event), intent(inout) :: this
+        real(dp), intent(in) :: t
+        type(parameters), intent(in) :: p
+    end function abstract_detect
+end interface
 
 type, abstract :: update
 end type update
