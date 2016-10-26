@@ -243,12 +243,12 @@ function ode_trajectory(p, s0, epd, err) result(tra)
     real(dp) :: t
     real(dp) :: tend
 
-    p_ => p
-    tnk = c_loc(p_)
-    rv = s0%rv
-    t = 0._dp
-    tend = seconds(epd)
-    call integrate(p%integrator, rhs, rv, t, tend, tnk, maxstep=p%maxstep)
+    ! p_ => p
+    ! tnk = c_loc(p_)
+    ! rv = s0%rv
+    ! t = 0._dp
+    ! tend = seconds(epd)
+    ! call integrate(p%integrator, rhs, rv, t, tend, tnk, maxstep=p%maxstep)
 end function ode_trajectory
 
 function ode_state(p, s0, epd, err) result(s1)
@@ -265,7 +265,11 @@ function ode_state(p, s0, epd, err) result(s1)
     real(dp) :: t
     real(dp) :: tend
 
-    p_ => p
+    ! Gfortran workaround
+    select type (p)
+    type is (ode)
+        p_ => p
+    end select
     tnk = c_loc(p_)
     rv = s0%rv
     t = 0._dp
