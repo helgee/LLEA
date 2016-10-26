@@ -32,12 +32,13 @@
 !
 module propagators
 
-use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
+use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_loc
 use bodies, only: body
 use constants, only: earth
 use epochs, only: epochdelta, seconds, operator (+)
 use exceptions
-use forces, only: model, gravity, drag, thirdbody
+use forces, only: model, gravity, drag, thirdbody, uniformgravity
+use integrators, only: integrate
 use math, only: eps, isapprox, norm, pih, cross, cot, linspace
 use states, only: state, framelen
 use trajectories, only: trajectory
@@ -54,7 +55,7 @@ end type propagator
 abstract interface
     function abstract_trajectory(p, s0, epd, err) result(tra)
         import :: propagator, state, epochdelta, exception, trajectory
-        class(propagator), intent(in) :: p
+        class(propagator), intent(inout), target :: p
         type(state), intent(in) :: s0
         type(epochdelta), intent(in) :: epd
         type(exception), intent(inout), optional :: err
@@ -63,7 +64,7 @@ abstract interface
 
     function abstract_state(p, s0, epd, err) result(s)
         import :: propagator, state, epochdelta, exception, trajectory
-        class(propagator), intent(in) :: p
+        class(propagator), intent(inout), target :: p
         type(state), intent(in) :: s0
         type(epochdelta), intent(in) :: epd
         type(exception), intent(inout), optional :: err
@@ -85,7 +86,9 @@ interface kepler
 end interface kepler
 
 type, extends(propagator) :: ode
-    character(len=framelen) :: frame
+    character(len=framelen) :: frame = "GCRF"
+    character(len=6) :: integrator = "dop853"
+    type(body) :: center
     real(dp) :: maxstep = 0._dp
     integer :: numstep = 100000
     class(gravity), allocatable :: gravity
@@ -96,33 +99,82 @@ contains
     procedure :: state => ode_state
 end type ode
 
+interface ode
+    module procedure :: ode_init
+end interface ode
+
 private
 
-public :: kepler, solve_kepler, getstate, gettrajectory
+public :: kepler, solve_kepler, getstate, gettrajectory, ode
 
 contains
+
+function ode_init(frame, integrator, center, maxstep, numstep, gravmodel, dragmodel, tbmodel) result(p)
+    character(len=*), intent(in), optional :: frame
+    character(len=*), intent(in), optional :: integrator
+    type(body), intent(in), optional :: center
+    real(dp), intent(in), optional :: maxstep
+    integer, intent(in), optional :: numstep
+    class(gravity), intent(in), optional :: gravmodel
+    class(drag), intent(in), optional :: dragmodel
+    class(model), intent(in), optional :: tbmodel
+    type(ode) :: p
+
+    type(uniformgravity) :: grav
+
+    if (present(frame)) p%frame = frame
+    if (present(integrator)) p%integrator = integrator
+    p%center = earth
+    if (present(center)) p%center = center
+    if (present(maxstep)) p%maxstep = maxstep
+    if (present(numstep)) p%numstep = numstep
+    grav = uniformgravity(earth)
+    allocate(p%gravity, source=grav)
+    if (present(gravmodel)) allocate(p%gravity, source=gravmodel)
+    if (present(dragmodel)) allocate(p%drag, source=dragmodel)
+    if (present(tbmodel)) allocate(p%thirdbody, source=tbmodel)
+end function ode_init
 
 subroutine rhs(n, t, y, f, tnk)
     integer, intent(in) :: n
     real(dp), intent(in) :: t
-    real(dp), dimension(:), intent(in) :: y
-    real(dp), dimension(:), intent(out) :: f
+    real(dp), dimension(n), intent(in) :: y
+    real(dp), dimension(n), intent(out) :: f
     type(c_ptr), intent(in) :: tnk
 
     type(ode), pointer :: p
     call c_f_pointer(tnk, p)
 
+    f = 0._dp
     call p%gravity%update(f, t, y)
-    call p%thirdbody%update(f, t, y)
+    if (allocated(p%thirdbody)) then
+        call p%thirdbody%update(f, t, y)
+    end if
     if (allocated(p%drag)) then
         call p%drag%update(f, t, y)
     end if
 end subroutine rhs
 
+subroutine solout(nr, xold, x, y, n, con, icomp,&
+                    nd, tnk, irtrn, xout)
+    integer, intent(in) :: n
+    integer, intent(in) :: nr
+    integer, intent(in) :: nd
+    integer, intent(inout) :: irtrn
+    integer, dimension(nd), intent(in) :: icomp
+    real(dp), intent(in) :: xold
+    real(dp), intent(in) :: x
+    real(dp), dimension(n), intent(in) :: y
+    real(dp), dimension(8*nd), intent(in) :: con
+    real(dp), intent(inout) :: xout
+    type(c_ptr), intent(in) :: tnk
+    xout = 0._dp
+end subroutine solout
+
 function getstate(s0, dt, p, err) result(s)
     type(state), intent(in) :: s0
     class(*), intent(in) :: dt
-    class(propagator), intent(in) :: p
+    class(propagator), intent(inout) :: p
     type(exception), intent(out), optional :: err
     type(state) :: s
 
@@ -151,7 +203,7 @@ end function getstate
 function gettrajectory(s0, dt, p, err) result(tra)
     type(state), intent(in) :: s0
     class(*), intent(in) :: dt
-    class(propagator), intent(in) :: p
+    class(propagator), intent(inout) :: p
     type(exception), intent(out), optional :: err
     type(trajectory) :: tra
 
@@ -178,27 +230,52 @@ function gettrajectory(s0, dt, p, err) result(tra)
 end function gettrajectory
 
 function ode_trajectory(p, s0, epd, err) result(tra)
-    class(ode), intent(in) :: p
+    class(ode), intent(inout), target :: p
     type(state), intent(in) :: s0
     type(epochdelta), intent(in) :: epd
     type(exception), intent(inout), optional :: err
     type(trajectory) :: tra
 
     type(exception) :: err_
+    type(ode), pointer :: p_
+    type(c_ptr) :: tnk
+    real(dp), dimension(6) :: rv
+    real(dp) :: t
+    real(dp) :: tend
+
+    p_ => p
+    tnk = c_loc(p_)
+    rv = s0%rv
+    t = 0._dp
+    tend = seconds(epd)
+    call integrate(p%integrator, rhs, rv, t, tend, tnk, maxstep=p%maxstep)
 end function ode_trajectory
 
 function ode_state(p, s0, epd, err) result(s1)
-    class(ode), intent(in) :: p
+    class(ode), intent(inout), target :: p
     type(state), intent(in) :: s0
     type(epochdelta), intent(in) :: epd
     type(exception), intent(inout), optional :: err
     type(state) :: s1
 
     type(exception) :: err_
+    type(ode), pointer :: p_
+    type(c_ptr) :: tnk
+    real(dp), dimension(6) :: rv
+    real(dp) :: t
+    real(dp) :: tend
+
+    p_ => p
+    tnk = c_loc(p_)
+    rv = s0%rv
+    t = 0._dp
+    tend = seconds(epd)
+    call integrate(p%integrator, rhs, rv, t, tend, tnk, maxstep=p%maxstep)
+    s1 = state(s0%ep + epd, rv, s0%frame, s0%center)
 end function ode_state
 
 function kepler_trajectory(p, s0, epd, err) result(tra)
-    class(kepler), intent(in) :: p
+    class(kepler), intent(inout), target :: p
     type(state), intent(in) :: s0
     type(epochdelta), intent(in) :: epd
     type(exception), intent(inout), optional :: err
@@ -228,7 +305,7 @@ function kepler_trajectory(p, s0, epd, err) result(tra)
 end function kepler_trajectory
 
 function kepler_state(p, s0, epd, err) result(s1)
-    class(kepler), intent(in) :: p
+    class(kepler), intent(inout), target :: p
     type(state), intent(in) :: s0
     type(epochdelta), intent(in) :: epd
     type(exception), intent(inout), optional :: err

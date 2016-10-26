@@ -17,8 +17,6 @@ use types, only: dp
 implicit none
 
 type, abstract :: model
-    type(state) :: s0
-    type(body) :: center
 contains
     procedure(eval), deferred :: eval
     procedure(update), deferred :: update
@@ -48,19 +46,23 @@ type, extends(model), abstract :: drag
 end type drag
 
 type, extends(gravity) :: uniformgravity
+    type(body) :: center
 contains
     procedure :: eval => uniformgravity_eval
     procedure :: update => uniformgravity_update
 end type uniformgravity
 
 type, extends(gravity) :: j2gravity
+    type(body) :: center
 contains
     procedure :: eval => j2gravity_eval
     procedure :: update => j2gravity_update
 end type j2gravity
 
 type, extends(model) :: thirdbody
+    type(body) :: center
     type(body), dimension(:), allocatable :: bodies
+    type(state) :: s0
 contains
     procedure :: eval => thirdbody_eval
     procedure :: update => thirdbody_update

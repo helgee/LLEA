@@ -25,6 +25,7 @@ type(state) :: s0
 type(state) :: s1
 type(epochdelta) :: epd
 type(trajectory) :: tra
+type(ode) :: o
 
 call init_constants
 
@@ -59,5 +60,9 @@ call reset(err)
 kep = kepler()
 tra = gettrajectory(s0, epd, kep)
 call assert_almost_equal(tra%final_state%rv, rv1exp, __LINE__)
+
+o = ode(maxstep=100._dp)
+s1 = getstate(s0, epd, o)
+call assert_almost_equal(s1%rv, rv1exp, __LINE__)
 
 end program testpropgators

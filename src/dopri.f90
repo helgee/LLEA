@@ -41,35 +41,9 @@ use types, only: dp
 
 implicit none
 
-abstract interface
-    subroutine c_fcn(n, x, y, f, tnk)
-        import :: c_int
-        import :: c_double
-        import :: c_ptr
-        integer(c_int), intent(in) :: n
-        real(c_double), intent(in) :: x
-        real(c_double), dimension(n), intent(in) :: y
-        real(c_double), dimension(n), intent(out) :: f
-        type(c_ptr), intent(in) :: tnk
-    end subroutine c_fcn
-    subroutine c_solout(nr, xold, x, y, n, con, icomp,&
-            nd, tnk, irtrn, xout)
-        import :: c_int
-        import :: c_double
-        import :: c_ptr
-        integer(c_int), intent(in) :: n
-        integer(c_int), intent(in) :: nr
-        integer(c_int), intent(in) :: nd
-        integer(c_int), intent(in) :: irtrn
-        integer(c_int), dimension(nd), intent(in) :: icomp
-        real(c_double), intent(in) :: xold
-        real(c_double), intent(in) :: x
-        real(c_double), dimension(n), intent(in) :: y
-        real(c_double), dimension(8*nd), intent(in) :: con
-        real(c_double), intent(inout) :: xout
-        type(c_ptr), intent(in) :: tnk
-    end subroutine c_solout
-end interface
+private
+
+public :: dopri5, dop853, contd5, contd8, soldummy, dopmessage
 
 real(dp) :: xold8
 real(dp) :: hout8
@@ -80,87 +54,6 @@ real(dp) :: hout5
 !$omp threadprivate(xold5, hout5)
 
 contains
-
-subroutine c_dop853(n, cfcn, x, y, xend, rtol, atol,&
-        itol, csolout, iout, work, lwork, iwork,&
-        liwork, tnk, idid) bind(c)
-    integer(c_int), intent(in) :: n
-    type(c_funptr), intent(in), value :: cfcn
-    real(c_double), intent(inout) :: x
-    real(c_double), dimension(n), intent(inout) :: y
-    real(c_double), intent(in) :: xend
-    real(c_double), dimension(n), intent(in) :: rtol
-    real(c_double), dimension(n), intent(in) :: atol
-    integer(c_int), intent(in) :: itol
-    type(c_funptr), intent(in), value :: csolout
-    integer(c_int), intent(in) :: iout
-    real(c_double), dimension(lwork), intent(inout) :: work
-    integer(c_int), intent(in) :: lwork
-    integer(c_int), dimension(liwork), intent(inout) :: iwork
-    integer(c_int), intent(in) :: liwork
-    type(c_ptr), intent(in) :: tnk
-    integer(c_int), intent(out) :: idid
-
-    procedure(c_fcn), pointer :: fcn
-    procedure(c_solout), pointer :: solout
-
-    call c_f_procpointer(cfcn, fcn)
-    call c_f_procpointer(csolout, solout)
-
-    call dop853(n, fcn, x, y, xend, rtol, atol,&
-            itol, solout, iout, work, lwork, iwork,&
-            liwork, tnk, idid)
-end subroutine c_dop853
-
-function c_contd8(ii, x, con, icomp, nd) result(ret) bind(c)
-    real(c_double) :: ret
-    integer(c_int), intent(in) :: ii
-    real(c_double), intent(in) :: x
-    real(c_double), dimension(8*nd), intent(in) :: con
-    integer(c_int), dimension(nd), intent(in) :: icomp
-    integer(c_int), intent(in) :: nd
-    ret = contd8(ii, x, con, icomp, nd)
-end function c_contd8
-
-subroutine c_dopri5(n, cfcn, x, y, xend, rtol, atol,&
-        itol, csolout, iout, work, lwork, iwork,&
-        liwork, tnk, idid) bind(c)
-    type(c_funptr), intent(in), value :: cfcn
-    type(c_funptr), intent(in), value :: csolout
-    integer(c_int), intent(in) :: n
-    integer(c_int), intent(in) :: itol
-    integer(c_int), intent(in) :: iout
-    integer(c_int), intent(in) :: lwork
-    integer(c_int), intent(in) :: liwork
-    integer(c_int), intent(out) :: idid
-    real(c_double), intent(in) :: xend
-    real(c_double), dimension(n), intent(in) :: rtol
-    real(c_double), dimension(n), intent(in) :: atol
-    real(c_double), dimension(lwork), intent(inout) :: work
-    integer(c_int), dimension(liwork), intent(inout) :: iwork
-    real(c_double), intent(inout) :: x
-    real(c_double), dimension(n), intent(inout) :: y
-    type(c_ptr), intent(in) :: tnk
-
-    procedure(c_fcn), pointer :: fcn
-    procedure(c_solout), pointer :: solout
-
-    call c_f_procpointer(cfcn, fcn)
-    call c_f_procpointer(csolout, solout)
-    call dopri5(n, fcn, x, y, xend, rtol, atol,&
-            itol, solout, iout, work, lwork, iwork,&
-            liwork, tnk, idid)
-end subroutine c_dopri5
-
-function c_contd5(ii, x, con, icomp, nd) result(ret) bind(c)
-    real(c_double) :: ret
-    integer(c_int), intent(in) :: ii
-    real(c_double), intent(in) :: x
-    real(c_double), dimension(5*nd), intent(in) :: con
-    integer(c_int), dimension(nd), intent(in) :: icomp
-    integer(c_int), intent(in) :: nd
-    ret = contd5(ii, x, con, icomp, nd)
-end function c_contd5
 
 subroutine dopri5(n,fcn,x,y,xend,  &
         rtol,atol,itol,  &
@@ -2083,5 +1976,86 @@ conpar=con(i+nd*4)+s*(con(i+nd*5)+s1*(con(i+nd*6)+s*con(i+nd*7)))
 contd8=con(i)+s*(con(i+nd)+s1*(con(i+nd*2)+s*(con(i+nd*3) +s1*conpar)))
 return
 end function contd8
+
+! Function: dopmessage
+!   Returns the corresponding error message for each error code.
+!
+! Parameters:
+!   idid - Integer error code.
+!
+! Returns:
+!   Error message string.
+character(len=47) function dopmessage(idid)
+    integer, intent(in) :: idid
+    select case (idid)
+    case (1)
+        dopmessage = "Computation successful."
+        return
+    case (2)
+        dopmessage = "Computation successful (interrupted by solout)."
+        return
+    case (-1)
+        dopmessage = "Input is not consistent."
+        return
+    case (-2)
+        dopmessage = "Larger nmax needed."
+        return
+    case (-3)
+        dopmessage = "Step size becomes too small."
+        return
+    case (-4)
+        dopmessage = "Problem is probably stiff (interrupted)."
+        return
+    end select
+end function dopmessage
+
+! Function: getstate
+!   Get intermediate states from dense output.
+!
+! Parameters:
+!   t - Time of requested state
+!   con - Real-valued parameters from dop853
+!   icomp - Integer-valued parameters from dop853
+!
+! Returns:
+!   rv - State vector
+function getstate(t, n, con, icomp) result(rv)
+    real(dp), intent(in) :: t
+    integer, intent(in) :: n
+    real(dp), dimension(:), intent(in) :: con
+    integer, dimension(:), intent(in) :: icomp
+    real(dp), dimension(n) :: rv
+
+    integer :: i
+    integer :: nd
+    integer :: nc
+
+    nd = size(icomp)
+    nc = size(con)
+
+    do i = 1, n
+        if (mod(nc, 8) == 0) then
+            rv(i) = contd8(i, t, con, icomp, nd)
+        else
+            rv(i) = contd5(i, t, con, icomp, nd)
+        end if
+    end do
+end function getstate
+
+subroutine soldummy(nr, xold, x, y, n, con, icomp,&
+                    nd, tnk, irtrn, xout)
+    integer, intent(in) :: n
+    integer, intent(in) :: nr
+    integer, intent(in) :: nd
+    integer, intent(inout) :: irtrn
+    integer, dimension(nd), intent(in) :: icomp
+    real(dp), intent(in) :: xold
+    real(dp), intent(in) :: x
+    real(dp), dimension(n), intent(in) :: y
+    real(dp), dimension(8*nd), intent(in) :: con
+    real(dp), intent(inout) :: xout
+    type(c_ptr) :: tnk
+    xout = 0._dp
+end subroutine soldummy
 
 end module
