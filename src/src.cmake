@@ -5,6 +5,7 @@ set(LLEA_SRCS
     src/dopri.f90
     src/ephemerides.f90
     src/epochs.f90
+    src/events.f90
     src/exceptions.f90
     src/forces.f90
     src/integrators.f90

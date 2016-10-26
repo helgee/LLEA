@@ -36,6 +36,7 @@ use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_loc
 use bodies, only: body
 use constants, only: earth
 use epochs, only: epochdelta, seconds, operator (+)
+use events, only: discontinuity
 use exceptions
 use forces, only: model, gravity, drag, thirdbody, uniformgravity
 use integrators, only: integrate
@@ -94,6 +95,8 @@ type, extends(propagator) :: ode
     class(gravity), allocatable :: gravity
     class(drag), allocatable :: drag
     class(model), allocatable :: thirdbody
+    logical :: savetrajectory = .false.
+    type(discontinuity), dimension(:), allocatable :: discontinuities
 contains
     procedure :: trajectory => ode_trajectory
     procedure :: state => ode_state
@@ -265,16 +268,28 @@ function ode_state(p, s0, epd, err) result(s1)
     real(dp) :: t
     real(dp) :: tend
 
+    p_ => null()
     ! Gfortran workaround
     select type (p)
     type is (ode)
         p_ => p
     end select
+
     tnk = c_loc(p_)
     rv = s0%rv
     t = 0._dp
     tend = seconds(epd)
-    call integrate(p%integrator, rhs, rv, t, tend, tnk, maxstep=p%maxstep)
+    call integrate(p%integrator, rhs, rv, t, tend, tnk, maxstep=p%maxstep, err=err_, &
+        solout=solout)
+    if (iserror(err_)) then
+        call catch(err_, "ode_state", __FILE__, __LINE__)
+        if (present(err)) then
+            err = err_
+            return
+        else
+            call raise(err_)
+        end if
+    end if
     s1 = state(s0%ep + epd, rv, s0%frame, s0%center)
 end function ode_state
 
