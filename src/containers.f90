@@ -21,4 +21,21 @@ type parameters
     integer, dimension(:,:), allocatable :: icomp
 end type parameters
 
+interface parameters
+    module procedure parameters_init
+end interface parameters
+
+contains
+
+function parameters_init(s0, frame, center) result(p)
+    type(state), intent(in) :: s0
+    character(len=framelen), intent(in) :: frame
+    type(body), intent(in) :: center
+    type(parameters) :: p
+
+    p%s0 = s0
+    p%frame = frame
+    p%center = center
+end function parameters_init
+
 end module containers
