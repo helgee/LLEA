@@ -64,8 +64,8 @@ subroutine integrate(integrator, fcn, y, t, tend, tnk,&
             integer, intent(inout) :: irtrn
             integer, dimension(nd), intent(in) :: icomp
             real(dp), intent(in) :: told
-            real(dp), intent(in) :: t
-            real(dp), dimension(n), intent(in) :: y
+            real(dp), intent(inout) :: t
+            real(dp), dimension(n), intent(inout) :: y
             real(dp), dimension(8*nd), intent(in) :: con
             real(dp), intent(inout) :: tout
             type(c_ptr), intent(in) :: tnk

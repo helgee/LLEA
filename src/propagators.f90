@@ -36,12 +36,13 @@ use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_loc
 use bodies, only: body
 use constants, only: earth
 use containers, only: parameters
+use dopri, only: densestate
 use epochs, only: epochdelta, seconds, operator (+)
-use events, only: discontinuity
+use events, only: findevent, event
 use exceptions
 use forces, only: model, gravity, drag, thirdbody, uniformgravity
 use integrators, only: integrate
-use math, only: eps, isapprox, norm, pih, cross, cot, linspace
+use math, only: eps, isapprox, norm, pih, cross, cot, linspace, findroot
 use states, only: state, framelen
 use trajectories, only: trajectory
 use types, only: dp
@@ -97,7 +98,7 @@ type, extends(propagator) :: ode
     class(drag), allocatable :: drag
     class(model), allocatable :: thirdbody
     logical :: savetrajectory = .false.
-    type(discontinuity), dimension(:), allocatable :: discontinuities
+    type(event), dimension(:), allocatable :: events
     type(parameters) :: parameters
 contains
     procedure :: trajectory => ode_trajectory
@@ -114,7 +115,7 @@ public :: kepler, solve_kepler, getstate, gettrajectory, ode
 
 contains
 
-function ode_init(frame, integrator, center, maxstep, numstep, gravmodel, dragmodel, tbmodel) result(p)
+function ode_init(frame, integrator, center, maxstep, numstep, gravmodel, dragmodel, tbmodel, events) result(p)
     character(len=*), intent(in), optional :: frame
     character(len=*), intent(in), optional :: integrator
     type(body), intent(in), optional :: center
@@ -123,6 +124,7 @@ function ode_init(frame, integrator, center, maxstep, numstep, gravmodel, dragmo
     class(gravity), intent(in), optional :: gravmodel
     class(drag), intent(in), optional :: dragmodel
     class(model), intent(in), optional :: tbmodel
+    type(event), dimension(:), intent(in), optional :: events
     type(ode) :: p
 
     type(uniformgravity) :: grav
@@ -138,6 +140,7 @@ function ode_init(frame, integrator, center, maxstep, numstep, gravmodel, dragmo
     if (present(gravmodel)) allocate(p%gravity, source=gravmodel)
     if (present(dragmodel)) allocate(p%drag, source=dragmodel)
     if (present(tbmodel)) allocate(p%thirdbody, source=tbmodel)
+    if (present(events)) p%events = events
 end function ode_init
 
 subroutine rhs(n, t, y, f, tnk)
@@ -160,21 +163,62 @@ subroutine rhs(n, t, y, f, tnk)
     end if
 end subroutine rhs
 
-subroutine solout(nr, xold, x, y, n, con, icomp,&
+subroutine callback(nr, told, t, y, n, con, icomp,&
                     nd, tnk, irtrn, xout)
     integer, intent(in) :: n
     integer, intent(in) :: nr
     integer, intent(in) :: nd
     integer, intent(inout) :: irtrn
     integer, dimension(nd), intent(in) :: icomp
-    real(dp), intent(in) :: xold
-    real(dp), intent(in) :: x
-    real(dp), dimension(n), intent(in) :: y
+    real(dp), intent(in) :: told
+    real(dp), intent(inout) :: t
+    real(dp), dimension(n), intent(inout) :: y
     real(dp), dimension(8*nd), intent(in) :: con
     real(dp), intent(inout) :: xout
     type(c_ptr), intent(in) :: tnk
+
+    type(ode), pointer :: p
+    type(event), pointer :: evt
+    integer :: i
+    logical :: firststep
+    real(dp), dimension(n) :: yold
+    real(dp), dimension(n) :: yevt
+    type(exception) :: err_
+    real(dp) :: tevt
+
+    firststep = isapprox(told, t)
     xout = 0._dp
-end subroutine solout
+    call c_f_pointer(tnk, p)
+    if (allocated(p%events)) then
+        p%parameters%con = con
+        p%parameters%icomp = icomp
+        do i = 1, size(p%events)
+            evt => p%events(i)
+            ! Skip discontinuities that have already been applied
+            if (evt%done) cycle
+
+            if (allocated(evt%up).and.allocated(evt%t)) then
+                if (isapprox(evt%t(1), t)) then
+                    call evt%up%apply(y, p%parameters)
+                    evt%done = .true.
+                    irtrn = 2
+                end if
+            end if
+
+            if (.not.firststep) then
+                yold = densestate(told, n, con, icomp)
+                if (evt%det%haspassed(told, t, yold, y, p%parameters)) then
+                    tevt = evt%det%find(told, t, p%parameters, err=err_)
+                    if (.not.allocated(evt%t)) then
+                        evt%t = [tevt]
+                    else
+                        evt%t = [evt%t, tevt]
+                    end if
+                end if
+            end if
+        end do
+    end if
+end subroutine callback
 
 function getstate(s0, dt, p, err) result(s)
     type(state), intent(in) :: s0
@@ -283,7 +327,7 @@ function ode_state(p, s0, epd, err) result(s1)
     t = 0._dp
     tend = seconds(epd)
     call integrate(p%integrator, rhs, rv, t, tend, tnk, maxstep=p%maxstep, err=err_, &
-        solout=solout)
+        solout=callback)
     if (iserror(err_)) then
         call catch(err_, "ode_state", __FILE__, __LINE__)
         if (present(err)) then

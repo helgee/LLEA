@@ -43,7 +43,7 @@ implicit none
 
 private
 
-public :: dopri5, dop853, contd5, contd8, soldummy, dopmessage
+public :: dopri5, dop853, contd5, contd8, soldummy, dopmessage, densestate
 
 real(dp) :: xold8
 real(dp) :: hout8
@@ -2019,7 +2019,7 @@ end function dopmessage
 !
 ! Returns:
 !   rv - State vector
-function getstate(t, n, con, icomp) result(rv)
+function densestate(t, n, con, icomp) result(rv)
     real(dp), intent(in) :: t
     integer, intent(in) :: n
     real(dp), dimension(:), intent(in) :: con
@@ -2040,7 +2040,7 @@ function getstate(t, n, con, icomp) result(rv)
             rv(i) = contd5(i, t, con, icomp, nd)
         end if
     end do
-end function getstate
+end function densestate
 
 subroutine soldummy(nr, xold, x, y, n, con, icomp,&
                     nd, tnk, irtrn, xout)
