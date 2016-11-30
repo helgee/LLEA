@@ -54,7 +54,8 @@ public :: pih, pi, twopi, deg, rad, &
     vecang, polcart, cartpol, norm, &
     getsign, binsearch, linspace, &
     interp, findroot, isapprox, &
-    issorted, greatcircle, deg2rad, rad2deg, cot
+    issorted, greatcircle, isin, &
+    deg2rad, rad2deg, cot
 
 ! Constants: Mathematical constants
 !
@@ -81,6 +82,13 @@ interface norm
     module procedure norm_vector
     module procedure norm_matrix
 end interface norm
+
+interface isin
+    module procedure isin_vector_dp
+    module procedure isin_matrix_dp
+    module procedure isin_vector_int
+    module procedure isin_matrix_int
+end interface isin
 
 contains
 
@@ -171,6 +179,61 @@ pure function isapprox_matrix(x, y, rtol, atol) result(res)
 
     res = norm(x - y) <= atol_ + rtol_ * max(norm(x), norm(y))
 end function isapprox_matrix
+
+pure function isin_vector_dp(el, arr) result(res)
+    real(dp), intent(in) :: el
+    real(dp), dimension(:), intent(in) :: arr
+    logical :: res
+
+    integer :: i
+
+    res = .false.
+
+    do i = 1, size(arr)
+        if (isapprox(el, arr(i))) then
+            res = .true.
+            exit
+        end if
+    end do
+end function isin_vector_dp
+
+pure function isin_matrix_dp(el, arr) result(res)
+    real(dp), intent(in) :: el
+    real(dp), dimension(:,:), intent(in) :: arr
+    logical :: res
+
+    integer :: i
+    integer :: j
+    integer, dimension(2) :: shp
+
+    shp = shape(arr)
+    res = .false.
+
+    do i = 1, shp(1)
+        do j = 1, shp(2)
+            if (isapprox(el, arr(i,j))) then
+                res = .true.
+                exit
+            end if
+        end do
+    end do
+end function isin_matrix_dp
+
+pure function isin_vector_int(el, arr) result(res)
+    integer, intent(in) :: el
+    integer, dimension(:), intent(in) :: arr
+    logical :: res
+
+    res = any(el == arr)
+end function isin_vector_int
+
+pure function isin_matrix_int(el, arr) result(res)
+    integer, intent(in) :: el
+    integer, dimension(:,:), intent(in) :: arr
+    logical :: res
+
+    res = any(el == arr)
+end function isin_matrix_int
 
 ! Function: cross
 !   Calculates cross product.

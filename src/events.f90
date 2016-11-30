@@ -8,63 +8,176 @@
 module events
 
 use containers, only: parameters
+use dopri, only: densestate
 use exceptions
-use math, only: eps, isapprox
+use math, only: eps, isapprox, pi, twopi, pih
 use types, only: dp
+use states, only: keplerian
 
 implicit none
 
 private
 
-public :: event, update, findevent
+public :: event, updater, detector, findevent, pericenter, apocenter
 
-type, abstract :: update
+type, abstract :: updater
 contains
     procedure(abstract_apply), deferred :: apply
-end type update
+end type updater
 
 type, abstract :: detector
 contains
-    procedure(abstract_haspassed), deferred :: haspassed
     procedure(abstract_detect), deferred :: detect
     procedure :: find => findevent
+    procedure :: haspassed => haspassed
 end type detector
 
 type event
     logical :: done = .false.
-    real(dp), dimension(:), allocatable :: t
+    logical :: abort = .false.
+    real(dp), allocatable :: t
+    real(dp), dimension(:), allocatable :: tlog
     class(detector), allocatable :: det
-    class(update), allocatable :: up
+    class(updater), allocatable :: up
 end type event
 
 abstract interface
     subroutine abstract_apply(this, y, p)
-        import :: update, dp, parameters
-        class(update), intent(in) :: this
+        import :: updater, dp, parameters
+        class(updater), intent(in) :: this
         real(dp), dimension(:), intent(inout) :: y
         type(parameters), intent(inout) :: p
     end subroutine abstract_apply
-
-    function abstract_haspassed(this, told, t, yold, y, p) result(res)
-        import :: detector, dp, parameters
-        class(detector), intent(in) :: this
-        real(dp), intent(in) :: told
-        real(dp), intent(in) :: t
-        real(dp), dimension(:), intent(in) :: yold
-        real(dp), dimension(:), intent(in) :: y
-        type(parameters), intent(in) :: p
-        logical :: res
-    end function abstract_haspassed
 
     function abstract_detect(this, t, p) result(res)
         import :: detector, dp, parameters
         class(detector), intent(in) :: this
         real(dp), intent(in) :: t
         type(parameters), intent(in) :: p
+        real(dp) :: res
     end function abstract_detect
 end interface
 
+type, extends(detector) :: pericenter
 contains
+    procedure :: detect => detect_pericenter
+    procedure :: haspassed => haspassed_pericenter
+end type pericenter
+
+type, extends(detector) :: apocenter
+contains
+    procedure :: detect => detect_apocenter
+    procedure :: haspassed => haspassed_apocenter
+end type apocenter
+
+interface event
+    module procedure event_init
+end interface event
+
+contains
+
+function event_init(t, detect, update, abort) result(evt)
+    real(dp), intent(in), optional :: t
+    class(detector), intent(in), optional :: detect
+    class(updater), intent(in), optional :: update
+    logical, intent(in), optional :: abort
+    type(event) :: evt
+
+    type(exception) :: err
+
+    if (.not.present(t) .and. .not.present(detect)) then
+        err = error("Either a fixed time or an event detector must be provided.", "event_init", &
+           __FILE__, __LINE__)
+        call raise(err)
+    end if
+
+    if (present(t)) allocate(evt%t, source=t)
+    if (present(detect)) allocate(evt%det, source=detect)
+    if (present(update)) allocate(evt%up, source=update)
+    if (present(abort)) evt%abort = abort
+end function event_init
+
+function detect_pericenter(this, t, p) result(res)
+    class(pericenter), intent(in) :: this
+    real(dp), intent(in) :: t
+    type(parameters), intent(in) :: p
+    real(dp) :: res
+
+    real(dp), dimension(p%nd) :: y
+    real(dp), dimension(6) :: el
+
+    y = densestate(t, p%nd, p%con, p%icomp)
+    el = keplerian(y, p%center%mu)
+    res = el(6)
+    if (res > pi) res = res - twopi
+end function detect_pericenter
+
+function haspassed_pericenter(this, t, told, p) result(passed)
+    class(pericenter), intent(in) :: this
+    real(dp), intent(in) :: t
+    real(dp), intent(in) :: told
+    type(parameters), intent(in) :: p
+    logical :: passed
+
+    real(dp) :: last
+    real(dp) :: current
+    logical :: propass
+    logical :: retropass
+
+    last = this%detect(told, p)
+    current = this%detect(t, p)
+    propass = (last < 0._dp .and. last > -pih).and.(current > 0._dp .and. current < pih)
+    retropass = (last > 0._dp .and. last < pih).and.(current < 0._dp .and. current > -pih)
+    passed = int(sign(1._dp, last)) /= int(sign(1._dp, current)) .and. (propass .or. retropass)
+end function haspassed_pericenter
+
+function detect_apocenter(this, t, p) result(res)
+    class(apocenter), intent(in) :: this
+    real(dp), intent(in) :: t
+    type(parameters), intent(in) :: p
+    real(dp) :: res
+
+    real(dp), dimension(p%nd) :: y
+    real(dp), dimension(6) :: el
+
+    y = densestate(t, p%nd, p%con, p%icomp)
+    el = keplerian(y, p%center%mu)
+    res = el(6) - pi
+end function detect_apocenter
+
+function haspassed_apocenter(this, t, told, p) result(passed)
+    class(apocenter), intent(in) :: this
+    real(dp), intent(in) :: t
+    real(dp), intent(in) :: told
+    type(parameters), intent(in) :: p
+    logical :: passed
+
+    real(dp) :: last
+    real(dp) :: current
+    logical :: propass
+    logical :: retropass
+
+    last = this%detect(told, p)
+    current = this%detect(t, p)
+    propass = (last > -pih .and. current < pih)
+    retropass = (last < pih .and. current > -pih)
+    passed = int(sign(1._dp, last)) /= int(sign(1._dp, current)) .and. (propass .or. retropass)
+end function haspassed_apocenter
+
+function haspassed(this, t, told, p) result(passed)
+    class(detector), intent(in) :: this
+    real(dp), intent(in) :: t
+    real(dp), intent(in) :: told
+    type(parameters), intent(in) :: p
+    logical :: passed
+
+    real(dp) :: last
+    real(dp) :: current
+
+    last = this%detect(told, p)
+    current = this%detect(t, p)
+    passed = int(sign(1._dp, last)) /= int(sign(1._dp, current))
+end function haspassed
 
 function findevent(this, xa, xb, params, xtol, rtol, max_iter, err)&
         result(root)

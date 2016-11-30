@@ -4,8 +4,9 @@ use types, only: dp
 use assertions
 use constants
 use epochs
+use events
 use exceptions
-use math, only: eps
+use math, only: eps, pi, twopi, isapprox
 use propagators
 use states
 use trajectories
@@ -19,6 +20,7 @@ real(dp), dimension(6) :: rv0exp
 real(dp), dimension(6) :: rv1exp
 real(dp), dimension(6) :: rv0
 real(dp), dimension(6) :: rv1
+real(dp), dimension(6) :: el
 type(kepler) :: kep
 type(epoch) :: ep
 type(state) :: s0
@@ -64,5 +66,14 @@ call assert_almost_equal(tra%final_state%rv, rv1exp, __LINE__)
 o = ode(maxstep=100._dp)
 s1 = getstate(s0, epd, o)
 call assert_almost_equal(s1%rv, rv1exp, __LINE__)
+
+o = ode(maxstep=100._dp, events=[event(detect=pericenter(), abort=.true.)])
+s1 = getstate(s0, 86400._dp, o)
+el = keplerian(s1)
+call assert(isapprox(el(6), 0._dp).or.isapprox(el(6), twopi), __LINE__)
+o = ode(maxstep=100._dp, events=[event(detect=apocenter(), abort=.true.)])
+s1 = getstate(s0, 86400._dp, o)
+el = keplerian(s1)
+call assert_almost_equal(el(6), pi, __LINE__)
 
 end program testpropgators

@@ -17,6 +17,7 @@ type parameters
     type(state) :: s0
     character(len=framelen) :: frame
     type(body) :: center
+    integer :: nd
     real(dp), dimension(:), allocatable :: con
     integer, dimension(:), allocatable :: icomp
 end type parameters

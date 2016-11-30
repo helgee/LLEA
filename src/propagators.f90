@@ -42,7 +42,8 @@ use events, only: findevent, event
 use exceptions
 use forces, only: model, gravity, drag, thirdbody, uniformgravity
 use integrators, only: integrate
-use math, only: eps, isapprox, norm, pih, cross, cot, linspace, findroot
+use math, only: eps, isapprox, norm, pih, cross, cot, linspace, findroot, &
+    isin
 use states, only: state, framelen
 use trajectories, only: trajectory
 use types, only: dp
@@ -181,10 +182,15 @@ subroutine callback(nr, told, t, y, n, con, icomp,&
     type(event), pointer :: evt
     integer :: i
     logical :: firststep
-    real(dp), dimension(n) :: yold
     real(dp), dimension(n) :: yevt
     type(exception) :: err_
     real(dp) :: tevt
+    logical :: passed
+
+    ! Flag that signals the integrator to abort the integration
+    integer, parameter :: abort = -1
+    ! Flag that signals an altered numerical solution do the integrators
+    integer, parameter :: altered = 2
 
     firststep = isapprox(told, t)
     xout = 0._dp
@@ -192,28 +198,55 @@ subroutine callback(nr, told, t, y, n, con, icomp,&
     if (allocated(p%events)) then
         p%parameters%con = con
         p%parameters%icomp = icomp
+        p%parameters%nd = nd
         do i = 1, size(p%events)
             evt => p%events(i)
             ! Skip discontinuities that have already been applied
             if (evt%done) cycle
 
-            if (allocated(evt%up).and.allocated(evt%t)) then
-                if (isapprox(evt%t(1), t)) then
-                    call evt%up%apply(y, p%parameters)
-                    evt%done = .true.
-                    irtrn = 2
+            passed = .false.
+
+            if (allocated(evt%det) .and. .not.firststep) then
+                ! Handle events with a detector
+                passed = evt%det%haspassed(t, told, p%parameters)
+                if (passed) then
+                    tevt = evt%det%find(t, told, p%parameters)
+                    evt%t = tevt
+                end if
+            else if (allocated(evt%t)) then
+                ! Handle events with a fixed time
+                if (isapprox(t, evt%t)) then
+                    passed = .true.
+                    tevt = t
+                else if (told < evt%t .and. t > evt%t) then
+                    passed = .true.
+                    tevt = evt%t
                 end if
             end if
 
-            if (.not.firststep) then
-                yold = densestate(told, n, con, icomp)
-                if (evt%det%haspassed(told, t, yold, y, p%parameters)) then
-                    tevt = evt%det%find(told, t, p%parameters, err=err_)
-                    if (.not.allocated(evt%t)) then
-                        evt%t = [tevt]
-                    else
-                        evt%t = [evt%t, tevt]
-                    end if
+            if (.not.passed) cycle
+
+            if (passed .and. evt%abort) then
+                y = densestate(tevt, n, con, icomp)
+                t = tevt
+                irtrn = abort
+                return
+            end if
+
+            if (allocated(evt%up)) then
+                ! Activate the state vector updater for discontinuities
+                evt%done = .true.
+                yevt = densestate(tevt, n, con, icomp)
+                call evt%up%apply(yevt, p%parameters)
+                y = yevt
+                t = tevt
+                irtrn = altered
+            else
+                ! Only log the time of normal events
+                if (allocated(evt%tlog) .and. .not.isin(tevt, evt%tlog)) then
+                    evt%tlog = [evt%tlog, tevt]
+                else
+                    evt%tlog = [tevt]
                 end if
             end if
         end do
@@ -337,7 +370,7 @@ function ode_state(p, s0, epd, err) result(s1)
             call raise(err_)
         end if
     end if
-    s1 = state(s0%ep + epd, rv, s0%frame, s0%center)
+    s1 = state(s0%ep + epochdelta(seconds=t), rv, s0%frame, s0%center)
 end function ode_state
 
 function kepler_trajectory(p, s0, epd, err) result(tra)
