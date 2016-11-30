@@ -37,7 +37,7 @@ use bodies, only: body, iaumatrix
 use constants, only: earth
 use epochs, only: epoch
 use exceptions
-use math, only: pi, cross, isapprox, mod2pi, norm
+use math, only: pi, cross, isapprox, mod2pi, norm, twopi
 use rotations, only: rotationmatrix
 
 implicit none
@@ -60,9 +60,14 @@ interface state
     module procedure state_init
 end interface state
 
+interface period
+    module procedure period_dp
+    module procedure period_state
+end interface period
+
 private
 
-public :: state, rotate_inplace, rotate, cartesian, keplerian, state_from_elements, framelen
+public :: state, rotate_inplace, rotate, cartesian, keplerian, state_from_elements, framelen, period
 
 contains
 
@@ -262,5 +267,24 @@ function state_from_elements(ep, ele, frame, center) result(s)
     s%center = earth
     if (present(center)) s%center = center
 end function state_from_elements
+
+function period_dp(a, mu) result(p)
+    real(dp), intent(in) :: a
+    real(dp), intent(in) :: mu
+    real(dp) :: p
+
+    p = twopi * sqrt(a*a*a/mu)
+end function period_dp
+
+function period_state(s) result(p)
+    type(state), intent(in) :: s
+    real(dp) :: p
+
+    real(dp), dimension(6) :: el
+    real(dp) :: a3
+
+    el = keplerian(s)
+    p = period_dp(el(1), s%center%mu)
+end function period_state
 
 end module states

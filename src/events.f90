@@ -159,8 +159,8 @@ function haspassed_apocenter(this, t, told, p) result(passed)
 
     last = this%detect(told, p)
     current = this%detect(t, p)
-    propass = (last > -pih .and. current < pih)
-    retropass = (last < pih .and. current > -pih)
+    propass = (last < 0._dp .and. last > -pih).and.(current > 0._dp .and. current < pih)
+    retropass = (last > 0._dp .and. last < pih).and.(current < 0._dp .and. current > -pih)
     passed = int(sign(1._dp, last)) /= int(sign(1._dp, current)) .and. (propass .or. retropass)
 end function haspassed_apocenter
 

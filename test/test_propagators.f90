@@ -71,9 +71,18 @@ o = ode(maxstep=100._dp, events=[event(detect=pericenter(), abort=.true.)])
 s1 = getstate(s0, 86400._dp, o)
 el = keplerian(s1)
 call assert(isapprox(el(6), 0._dp).or.isapprox(el(6), twopi), __LINE__)
+
 o = ode(maxstep=100._dp, events=[event(detect=apocenter(), abort=.true.)])
 s1 = getstate(s0, 86400._dp, o)
 el = keplerian(s1)
 call assert_almost_equal(el(6), pi, __LINE__)
+
+o = ode(maxstep=100._dp, events=[event(detect=pericenter())])
+s1 = getstate(s0, period(s0)*3, o)
+call assert_equal(size(o%events(1)%tlog), 3, __LINE__)
+
+o = ode(maxstep=100._dp, events=[event(detect=apocenter())])
+s1 = getstate(s0, period(s0)*3, o)
+call assert_equal(size(o%events(1)%tlog), 3, __LINE__)
 
 end program testpropgators
