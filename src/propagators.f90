@@ -179,6 +179,7 @@ subroutine callback(nr, told, t, y, n, con, icomp,&
     type(c_ptr), intent(in) :: tnk
 
     type(ode), pointer :: p
+    type(parameters), pointer :: params
     type(event), pointer :: evt
     integer :: i
     logical :: firststep
@@ -189,12 +190,13 @@ subroutine callback(nr, told, t, y, n, con, icomp,&
 
     ! Flag that signals the integrator to abort the integration
     integer, parameter :: abort = -1
-    ! Flag that signals an altered numerical solution do the integrators
+    ! Flag that signals an altered numerical solution do the integrator
     integer, parameter :: altered = 2
 
     firststep = isapprox(told, t)
     xout = 0._dp
     call c_f_pointer(tnk, p)
+    params => p%parameters
     if (allocated(p%events)) then
         p%parameters%con = con
         p%parameters%icomp = icomp
@@ -250,6 +252,20 @@ subroutine callback(nr, told, t, y, n, con, icomp,&
                 end if
             end if
         end do
+    end if
+
+    if (params%savetrajectory) then
+        if (associated(params%head)) then
+            allocate(params%head%next)
+            params%head%next%y = y
+            params%head%next%t = t
+            params%head => params%head%next
+        else
+            allocate(params%first)
+            params%first%y = y
+            params%first%t = t
+            params%head => params%first
+        end if
     end if
 end subroutine callback
 

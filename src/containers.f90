@@ -9,12 +9,16 @@ module containers
 
 use bodies, only: body
 use states, only: state, framelen
+use trajectories, only: trajectory, tranode
 use types, only: dp
 
 implicit none
 
 type parameters
     type(state) :: s0
+    type(tranode), pointer :: first => null()
+    type(tranode), pointer :: head => null()
+    logical :: savetrajectory = .true.
     character(len=framelen) :: frame
     type(body) :: center
     integer :: nd

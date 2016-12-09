@@ -33,3 +33,7 @@ add_test(TEST_IAU test_iau)
 add_executable(test_states test/test_states.f90)
 target_link_libraries(test_states llea)
 add_test(TEST_STATES test_states)
+
+add_executable(test_trajectories test/test_trajectories.f90)
+target_link_libraries(test_trajectories llea)
+add_test(TEST_TRAJECTORIES test_trajectories)
