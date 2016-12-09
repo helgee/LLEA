@@ -11,6 +11,7 @@
 module trajectories
 
 use epochs, only: epochdelta, operator (+)
+use exceptions
 use states, only: state
 use types, only: dp
 
@@ -18,7 +19,7 @@ implicit none
 
 private
 
-public :: tranode, trajectory, length, add_node, isdirty, save_trajectory
+public :: tranode, trajectory, length, add_node, isdirty, save_trajectory, getfield
 
 integer, parameter :: fieldlen = 12
 
@@ -40,8 +41,7 @@ end type trajectory
 
 interface trajectory
     module procedure new_trajectory_array
-    ! Gfortran chokes on this
-    ! module procedure new_trajectory_tranode
+    module procedure init_trajectory
 end interface trajectory
 
 interface tranode
@@ -50,6 +50,20 @@ end interface tranode
 
 contains
 
+function init_trajectory(s0, fields) result(tra)
+    type(state), intent(in) :: s0
+    character(len=*), dimension(:), intent(in), optional :: fields
+    type(trajectory) :: tra
+
+    tra%initial_state = s0
+
+    call setfields(tra, ["x ", "y ", "z ", "vx", "vy", "vz"])
+    if (present(fields)) then
+        if (allocated(tra%fields)) deallocate(tra%fields)
+        call setfields(tra, fields)
+    end if
+end function init_trajectory
+
 function init_tranode(t, y) result(node)
     real(dp), intent(in) :: t
     real(dp), dimension(:), intent(in) :: y
@@ -57,6 +71,46 @@ function init_tranode(t, y) result(node)
     node%t = t
     node%y = y
 end function init_tranode
+
+subroutine getfield(tra, field, res, err)
+    type(trajectory), intent(in) :: tra
+    character(len=*), intent(in) :: field
+    real(dp), dimension(:), intent(out), allocatable :: res
+    type(exception), intent(inout), optional :: err
+
+    type(exception) :: err_
+    integer :: ind
+    integer :: i
+
+    if (.not.allocated(tra%y)) then
+        err_ = error("Trajectory is empty.", "getfield", __FILE__, __LINE__)
+        if (present(err)) then
+            err = err_
+            return
+        else
+            call raise(err_)
+        end if
+    end if
+
+    ind = 0
+    do i = 1, size(tra%fields)
+        if (tra%fields(i) == field) then
+            ind = i
+            exit
+        end if
+    end do
+    if (ind == 0) then
+        err_ = error("Unknown field: "//trim(field), "getfield", __FILE__, __LINE__)
+        if (present(err)) then
+            err = err_
+            return
+        else
+            call raise(err_)
+        end if
+    end if
+
+    res = tra%y(ind,:)
+end subroutine getfield
 
 function new_trajectory_array(s0, t, arr, fields) result(tra)
     type(state), intent(in) :: s0
@@ -162,10 +216,23 @@ function length(tra) result(len)
     end if
 end function length
 
-subroutine add_node(tra, t, y)
+subroutine add_node(tra, t, y, err)
     type(trajectory), intent(inout), target :: tra
     real(dp), intent(in) :: t
     real(dp), dimension(:), intent(in) :: y
+    type(exception), intent(inout), optional :: err
+
+    type(exception) :: err_
+
+    if (size(y) /= size(tra%fields)) then
+        err_ = error("Wrong number of fields.", "add_node", __FILE__, __LINE__)
+        if (present(err)) then
+            err = err_
+            return
+        else
+            call raise(err_)
+        end if
+    end if
 
     if (.not.associated(tra%head)) then
         allocate(tra%head, source=tranode(t, y))
