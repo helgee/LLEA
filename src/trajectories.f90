@@ -16,6 +16,10 @@ use types, only: dp
 
 implicit none
 
+private
+
+public :: tranode, trajectory, length, add_node, isdirty, save_trajectory
+
 integer, parameter :: fieldlen = 12
 
 type tranode
@@ -27,9 +31,11 @@ end type tranode
 type trajectory
     type(state) :: initial_state
     type(state) :: final_state
+    type(tranode), pointer :: head => null()
+    type(tranode), pointer :: tail => null()
     character(len=fieldlen), dimension(:), allocatable :: fields
-    real(dp), dimension(:), allocatable :: tindex
-    real(dp), dimension(:,:), allocatable :: vectors
+    real(dp), dimension(:), allocatable :: t
+    real(dp), dimension(:,:), allocatable :: y
 end type trajectory
 
 interface trajectory
@@ -41,10 +47,6 @@ end interface trajectory
 interface tranode
     module procedure init_tranode
 end interface tranode
-
-private
-
-public :: tranode, trajectory, length, add_node, save_trajectory
 
 contains
 
@@ -72,57 +74,55 @@ function new_trajectory_array(s0, t, arr, fields) result(tra)
         call setfields(tra, fields)
     end if
     tra%initial_state = s0
-    tra%vectors = arr
-    tra%tindex = t
+    tra%y = arr
+    tra%t = t
     tra%final_state = state(s0%ep + epochdelta(seconds=t(n)), arr(n, :), s0%frame, s0%center)
 end function new_trajectory_array
 
-function save_trajectory(s0, node, fields, delete) result(tra)
-    type(state), intent(in) :: s0
-    type(tranode), intent(in), target :: node
-    character(len=*), dimension(:), intent(in), optional :: fields
-    logical, intent(in), optional :: delete
-    type(trajectory) :: tra
+subroutine save_trajectory(tra)
+    type(trajectory), intent(inout) :: tra
 
     integer :: n
+    integer :: m
     integer :: i
-    logical :: delete_
     type(tranode), pointer :: current
 
-    delete_ = .true.
-    if (present(delete)) delete_ = delete
+    if (.not.isdirty(tra)) return
 
-    n = length(node)
-    call setfields(tra, ["x ", "y ", "z ", "vx", "vy", "vz"])
-    if (present(fields)) then
-        call setfields(tra, fields)
-    end if
+    n = length(tra)
+    m = size(tra%head%y)
 
-    allocate(tra%tindex(n))
-    allocate(tra%vectors(n, size(node%y)))
-    tra%tindex(1) = node%t
-    tra%vectors(1,:) = node%y
-
+    allocate(tra%t(n))
+    allocate(tra%y(m,n))
+    tra%t(1) = tra%head%t
+    tra%y(:,1) = tra%head%y
     i = 1
-    current => node%next
-    do
-        if (associated(current)) then
-            i = i + 1
-            tra%tindex(i) = current%t
-            tra%vectors(i,:) = current%y
-            current => current%next
-            if (delete_) then
-                deallocate(current)
-                nullify(current)
-            end if
-        else
-            exit
-        end if
-    end do
 
-    tra%initial_state = s0
-    tra%final_state = state(s0%ep + epochdelta(seconds=tra%tindex(n)), tra%vectors(n, :), s0%frame, s0%center)
-end function save_trajectory
+    current => tra%head%next
+    do while (associated(current))
+        i = i + 1
+        tra%t(i) = current%t
+        tra%y(:,i) = current%y
+        current => current%next
+    end do
+    call delete_node(tra%head)
+end subroutine save_trajectory
+
+recursive subroutine delete_node(node)
+    type(tranode), pointer :: node
+
+    if (associated(node)) then
+        call delete_node(node%next)
+        deallocate(node)
+        nullify(node)
+    end if
+end subroutine delete_node
+
+function isdirty(tra) result(res)
+    type(trajectory), intent(in) :: tra
+    logical :: res
+    res = associated(tra%head)
+end function isdirty
 
 subroutine setfields(tra, fields)
     type(trajectory), intent(inout) :: tra
@@ -143,37 +143,37 @@ subroutine setfields(tra, fields)
     end do
 end subroutine setfields
 
-function length(nd) result(len)
-    type(tranode), intent(in) :: nd
+function length(tra) result(len)
+    type(trajectory), intent(in) :: tra
     integer :: len
 
     type(tranode), pointer :: current
 
-    current => nd%next
-    len = 1
-    do while (associated(current))
-        len = len + 1
-        current => current%next
-    end do
+    if (.not.isdirty(tra)) then
+        len = 0
+        return
+    else
+        current => tra%head%next
+        len = 1
+        do while (associated(current))
+            len = len + 1
+            current => current%next
+        end do
+    end if
 end function length
 
-subroutine add_node(nd, t, y, head)
-    type(tranode), intent(in), target :: nd
+subroutine add_node(tra, t, y)
+    type(trajectory), intent(inout), target :: tra
     real(dp), intent(in) :: t
     real(dp), dimension(:), intent(in) :: y
-    type(tranode), intent(inout), pointer, optional :: head
 
-    type(tranode), pointer :: current
-
-    current => nd
-    do while (associated(current%next))
-        current => current%next
-    end do
-
-    allocate(current%next)
-    current%next%t = t
-    current%next%y = y
-    if (present(head)) head => current%next
+    if (.not.associated(tra%head)) then
+        allocate(tra%head, source=tranode(t, y))
+        tra%tail => tra%head
+    else
+        allocate(tra%tail%next, source=tranode(t, y))
+        tra%tail => tra%tail%next
+    end if
 end subroutine add_node
 
 end module trajectories
