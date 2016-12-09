@@ -130,7 +130,7 @@ function new_trajectory_array(s0, t, arr, fields) result(tra)
     tra%initial_state = s0
     tra%y = arr
     tra%t = t
-    tra%final_state = state(s0%ep + epochdelta(seconds=t(n)), arr(n, :), s0%frame, s0%center)
+    tra%final_state = state(s0%ep + epochdelta(seconds=t(n)), arr(:,n), s0%frame, s0%center)
 end function new_trajectory_array
 
 subroutine save_trajectory(tra)
@@ -160,6 +160,8 @@ subroutine save_trajectory(tra)
         current => current%next
     end do
     call delete_node(tra%head)
+    tra%final_state = state(tra%initial_state%ep + epochdelta(seconds=tra%t(n)), tra%y(:,n), &
+        tra%initial_state%frame, tra%initial_state%center)
 end subroutine save_trajectory
 
 recursive subroutine delete_node(node)

@@ -45,7 +45,7 @@ use integrators, only: integrate
 use math, only: eps, isapprox, norm, pih, cross, cot, linspace, findroot, &
     isin
 use states, only: state, framelen
-use trajectories, only: trajectory
+use trajectories, only: trajectory, add_node, save_trajectory
 use types, only: dp
 
 implicit none
@@ -254,18 +254,8 @@ subroutine callback(nr, told, t, y, n, con, icomp,&
         end do
     end if
 
-    if (params%savetrajectory) then
-        if (associated(params%head)) then
-            allocate(params%head%next)
-            params%head%next%y = y
-            params%head%next%t = t
-            params%head => params%head%next
-        else
-            allocate(params%first)
-            params%first%y = y
-            params%first%t = t
-            params%head => params%first
-        end if
+    if (allocated(params%trajectory)) then
+        call add_node(params%trajectory, t, y)
     end if
 end subroutine callback
 
@@ -341,12 +331,32 @@ function ode_trajectory(p, s0, epd, err) result(tra)
     real(dp) :: t
     real(dp) :: tend
 
-    ! p_ => p
-    ! tnk = c_loc(p_)
-    ! rv = s0%rv
-    ! t = 0._dp
-    ! tend = seconds(epd)
-    ! call integrate(p%integrator, rhs, rv, t, tend, tnk, maxstep=p%maxstep)
+    p%parameters = parameters(s0, p%frame, p%center)
+    allocate(p%parameters%trajectory, source=trajectory(s0))
+    p_ => null()
+    ! Gfortran workaround
+    select type (p)
+    type is (ode)
+        p_ => p
+    end select
+
+    tnk = c_loc(p_)
+    rv = s0%rv
+    t = 0._dp
+    tend = seconds(epd)
+    call integrate(p%integrator, rhs, rv, t, tend, tnk, maxstep=p%maxstep, err=err_, &
+        solout=callback)
+    if (iserror(err_)) then
+        call catch(err_, "ode_trajectory", __FILE__, __LINE__)
+        if (present(err)) then
+            err = err_
+            return
+        else
+            call raise(err_)
+        end if
+    end if
+    call save_trajectory(p%parameters%trajectory)
+    tra = p%parameters%trajectory
 end function ode_trajectory
 
 function ode_state(p, s0, epd, err) result(s1)
@@ -402,9 +412,9 @@ function kepler_trajectory(p, s0, epd, err) result(tra)
     type(exception) :: err_
 
     times = linspace(0._dp, seconds(epd), p%points)
-    allocate(vectors(p%points, 6))
+    allocate(vectors(6,p%points))
     do i = 1, p%points
-        vectors(i, :) = solve_kepler(s0%center%mu, s0%rv, times(i), p%iterations, &
+        vectors(:,i) = solve_kepler(s0%center%mu, s0%rv, times(i), p%iterations, &
             p%rtol, err_)
         if (iserror(err_)) then
             call catch(err_, "kepler_trajectory", __FILE__, __LINE__)

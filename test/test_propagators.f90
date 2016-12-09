@@ -28,6 +28,7 @@ type(state) :: s1
 type(epochdelta) :: epd
 type(trajectory) :: tra
 type(ode) :: o
+real(dp), dimension(:), allocatable :: x
 
 call init_constants
 
@@ -66,6 +67,10 @@ call assert_almost_equal(tra%final_state%rv, rv1exp, __LINE__)
 o = ode(maxstep=100._dp)
 s1 = getstate(s0, epd, o)
 call assert_almost_equal(s1%rv, rv1exp, __LINE__)
+
+tra = gettrajectory(s0, epd, o)
+call assert_false(isdirty(tra), __LINE__)
+call assert_almost_equal(tra%final_state%rv, rv1exp, __LINE__)
 
 o = ode(maxstep=100._dp, events=[event(detect=pericenter(), abort=.true.)])
 s1 = getstate(s0, 86400._dp, o)
