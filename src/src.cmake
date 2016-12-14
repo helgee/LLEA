@@ -15,6 +15,7 @@ set(LLEA_SRCS
     src/naif.f90
     src/propagators.f90
     src/rotations.f90
+    src/splines.f90
     src/states.f90
     src/trajectories.f90
     src/types.f90

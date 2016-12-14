@@ -30,6 +30,10 @@ add_executable(test_iau test/test_iau.f90)
 target_link_libraries(test_iau llea)
 add_test(TEST_IAU test_iau)
 
+add_executable(test_splines test/test_splines.f90)
+target_link_libraries(test_splines llea)
+add_test(TEST_SPLINES test_splines)
+
 add_executable(test_states test/test_states.f90)
 target_link_libraries(test_states llea)
 add_test(TEST_STATES test_states)

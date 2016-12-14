@@ -14,8 +14,9 @@ include(deps/deps.cmake)
 include(src/src.cmake)
 
 add_library(llea SHARED ${LLEA_SRCS})
+target_link_libraries(llea dierckx)
 if(CMAKE_VERSION VERSION_GREATER 2.8.12)
-    set_target_properties(llea PROPERTIES MACOSX_RPATH ON)
+    set_target_properties(llea dierckx PROPERTIES MACOSX_RPATH ON)
 endif()
 install(
 	TARGETS llea
