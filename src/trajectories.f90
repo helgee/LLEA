@@ -12,6 +12,7 @@ module trajectories
 
 use epochs, only: epochdelta, operator (+)
 use exceptions
+use splines, only: spline1d, evaluate
 use states, only: state
 use types, only: dp
 
@@ -37,6 +38,7 @@ type trajectory
     character(len=fieldlen), dimension(:), allocatable :: fields
     real(dp), dimension(:), allocatable :: t
     real(dp), dimension(:,:), allocatable :: y
+    type(spline1d), dimension(:), allocatable :: spl
 end type trajectory
 
 interface trajectory
@@ -131,6 +133,7 @@ function new_trajectory_array(s0, t, arr, fields) result(tra)
     tra%y = arr
     tra%t = t
     tra%final_state = state(s0%ep + epochdelta(seconds=t(n)), arr(:,n), s0%frame, s0%center)
+    call generate_splines(tra)
 end function new_trajectory_array
 
 subroutine save_trajectory(tra)
@@ -162,7 +165,22 @@ subroutine save_trajectory(tra)
     call delete_node(tra%head)
     tra%final_state = state(tra%initial_state%ep + epochdelta(seconds=tra%t(n)), tra%y(:,n), &
         tra%initial_state%frame, tra%initial_state%center)
+    call generate_splines(tra)
 end subroutine save_trajectory
+
+subroutine generate_splines(tra)
+    type(trajectory), intent(inout) :: tra
+
+    integer :: n
+    integer :: i
+
+    n = size(tra%fields)
+    allocate(tra%spl(n))
+
+    do i = 1, n
+        tra%spl(i) = spline1d(tra%t, tra%y(i,:), bc="extrapolate")
+    end do
+end subroutine generate_splines
 
 recursive subroutine delete_node(node)
     type(tranode), pointer :: node
