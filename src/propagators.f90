@@ -45,7 +45,8 @@ use integrators, only: integrate
 use math, only: eps, isapprox, norm, pih, cross, cot, linspace, findroot, &
     isin
 use states, only: state, framelen
-use trajectories, only: trajectory, add_node, save_trajectory
+use trajectories, only: add_node, save_trajectory, trajectory, init_trajectory_array, &
+    init_trajectory
 use types, only: dp
 
 implicit none
@@ -112,7 +113,7 @@ end interface ode
 
 private
 
-public :: kepler, solve_kepler, getstate, gettrajectory, ode
+public :: kepler, solve_kepler, state_propagator, trajectory_propagator, ode
 
 contains
 
@@ -259,7 +260,7 @@ subroutine callback(nr, told, t, y, n, con, icomp,&
     end if
 end subroutine callback
 
-function getstate(s0, dt, p, err) result(s)
+function state_propagator(s0, dt, p, err) result(s)
     type(state), intent(in) :: s0
     class(*), intent(in) :: dt
     class(propagator), intent(inout) :: p
@@ -278,7 +279,7 @@ function getstate(s0, dt, p, err) result(s)
         end select
     end select
     if (iserror(err_)) then
-        call catch(err_, "getstate", __FILE__, __LINE__)
+        call catch(err_, "state_propagator", __FILE__, __LINE__)
         if (present(err)) then
             err = err_
             return
@@ -286,9 +287,9 @@ function getstate(s0, dt, p, err) result(s)
             call raise(err_)
         end if
     end if
-end function getstate
+end function state_propagator
 
-function gettrajectory(s0, dt, p, err) result(tra)
+function trajectory_propagator(s0, dt, p, err) result(tra)
     type(state), intent(in) :: s0
     class(*), intent(in) :: dt
     class(propagator), intent(inout) :: p
@@ -307,7 +308,7 @@ function gettrajectory(s0, dt, p, err) result(tra)
         end select
     end select
     if (iserror(err_)) then
-        call catch(err_, "gettrajectory", __FILE__, __LINE__)
+        call catch(err_, "trajectory_propagator", __FILE__, __LINE__)
         if (present(err)) then
             err = err_
             return
@@ -315,7 +316,7 @@ function gettrajectory(s0, dt, p, err) result(tra)
             call raise(err_)
         end if
     end if
-end function gettrajectory
+end function trajectory_propagator
 
 function ode_trajectory(p, s0, epd, err) result(tra)
     class(ode), intent(inout), target :: p
@@ -332,7 +333,7 @@ function ode_trajectory(p, s0, epd, err) result(tra)
     real(dp) :: tend
 
     p%parameters = parameters(s0, p%frame, p%center)
-    allocate(p%parameters%trajectory, source=trajectory(s0))
+    allocate(p%parameters%trajectory, source=init_trajectory(s0))
     p_ => null()
     ! Gfortran workaround
     select type (p)
@@ -426,7 +427,7 @@ function kepler_trajectory(p, s0, epd, err) result(tra)
             end if
         end if
     end do
-    tra = trajectory(s0, times, vectors)
+    tra = init_trajectory_array(s0, times, vectors)
 end function kepler_trajectory
 
 function kepler_state(p, s0, epd, err) result(s1)

@@ -10,6 +10,7 @@ set(LLEA_SRCS
     src/exceptions.f90
     src/forces.f90
     src/integrators.f90
+    src/interfaces.f90
     src/llea.f90
     src/math.f90
     src/naif.f90

@@ -20,7 +20,8 @@ implicit none
 
 private
 
-public :: tranode, trajectory, length, add_node, isdirty, save_trajectory, getfield
+public :: tranode, trajectory, len_dirty, add_node, isdirty, save_trajectory, getfield, init_trajectory, &
+    init_trajectory_array
 
 integer, parameter :: fieldlen = 12
 
@@ -40,11 +41,6 @@ type trajectory
     real(dp), dimension(:,:), allocatable :: y
     type(spline1d), dimension(:), allocatable :: spl
 end type trajectory
-
-interface trajectory
-    module procedure new_trajectory_array
-    module procedure init_trajectory
-end interface trajectory
 
 interface tranode
     module procedure init_tranode
@@ -114,7 +110,7 @@ subroutine getfield(tra, field, res, err)
     res = tra%y(ind,:)
 end subroutine getfield
 
-function new_trajectory_array(s0, t, arr, fields) result(tra)
+function init_trajectory_array(s0, t, arr, fields) result(tra)
     type(state), intent(in) :: s0
     real(dp), dimension(:), intent(in) :: t
     real(dp), dimension(:,:), intent(in) :: arr
@@ -134,7 +130,7 @@ function new_trajectory_array(s0, t, arr, fields) result(tra)
     tra%t = t
     tra%final_state = state(s0%ep + epochdelta(seconds=t(n)), arr(:,n), s0%frame, s0%center)
     call generate_splines(tra)
-end function new_trajectory_array
+end function init_trajectory_array
 
 subroutine save_trajectory(tra)
     type(trajectory), intent(inout) :: tra
@@ -146,7 +142,7 @@ subroutine save_trajectory(tra)
 
     if (.not.isdirty(tra)) return
 
-    n = length(tra)
+    n = len_dirty(tra)
     m = size(tra%head%y)
 
     allocate(tra%t(n))
@@ -217,7 +213,7 @@ subroutine setfields(tra, fields)
     end do
 end subroutine setfields
 
-function length(tra) result(len)
+function len_dirty(tra) result(len)
     type(trajectory), intent(in) :: tra
     integer :: len
 
@@ -234,7 +230,7 @@ function length(tra) result(len)
             current => current%next
         end do
     end if
-end function length
+end function len_dirty
 
 subroutine add_node(tra, t, y, err)
     type(trajectory), intent(inout), target :: tra

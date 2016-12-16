@@ -6,9 +6,11 @@ use constants
 use epochs
 use events
 use exceptions
+use interfaces, only: state
 use math, only: eps, pi, twopi, isapprox
 use propagators
-use states
+use states, only: keplerian, period
+use interfaces, only: state, trajectory
 use trajectories
 
 implicit none
@@ -28,7 +30,6 @@ type(state) :: s1
 type(epochdelta) :: epd
 type(trajectory) :: tra
 type(ode) :: o
-real(dp), dimension(:), allocatable :: x
 
 call init_constants
 
@@ -50,44 +51,44 @@ call reset(err)
 
 ep = epoch()
 s0 = state(ep, rv0exp)
-s1 = getstate(s0, dt, kep)
+s1 = state(s0, dt, kep)
 call assert_almost_equal(s1%rv, rv1exp, __LINE__)
 epd = epochdelta(seconds=dt)
-s1 = getstate(s0, epd, kep)
+s1 = state(s0, epd, kep)
 call assert_almost_equal(s1%rv, rv1exp, __LINE__)
 kep = kepler(iterations=1)
-s1 = getstate(s0, epd, kep, err=err)
+s1 = state(s0, epd, kep, err=err)
 call assert_raises("Kepler solver did not converge.", err, __LINE__)
 call reset(err)
 
 kep = kepler()
-tra = gettrajectory(s0, epd, kep)
+tra = trajectory(s0, epd, kep)
 call assert_almost_equal(tra%final_state%rv, rv1exp, __LINE__)
 
 o = ode(maxstep=100._dp)
-s1 = getstate(s0, epd, o)
+s1 = state(s0, epd, o)
 call assert_almost_equal(s1%rv, rv1exp, __LINE__)
 
-tra = gettrajectory(s0, epd, o)
+tra = trajectory(s0, epd, o)
 call assert_false(isdirty(tra), __LINE__)
 call assert_almost_equal(tra%final_state%rv, rv1exp, __LINE__)
 
 o = ode(maxstep=100._dp, events=[event(detect=pericenter(), abort=.true.)])
-s1 = getstate(s0, 86400._dp, o)
+s1 = state(s0, 86400._dp, o)
 el = keplerian(s1)
 call assert(isapprox(el(6), 0._dp).or.isapprox(el(6), twopi), __LINE__)
 
 o = ode(maxstep=100._dp, events=[event(detect=apocenter(), abort=.true.)])
-s1 = getstate(s0, 86400._dp, o)
+s1 = state(s0, 86400._dp, o)
 el = keplerian(s1)
 call assert_almost_equal(el(6), pi, __LINE__)
 
 o = ode(maxstep=100._dp, events=[event(detect=pericenter())])
-s1 = getstate(s0, period(s0)*3, o)
+s1 = state(s0, period(s0)*3, o)
 call assert_equal(size(o%events(1)%tlog), 3, __LINE__)
 
 o = ode(maxstep=100._dp, events=[event(detect=apocenter())])
-s1 = getstate(s0, period(s0)*3, o)
+s1 = state(s0, period(s0)*3, o)
 call assert_equal(size(o%events(1)%tlog), 3, __LINE__)
 
 end program testpropgators

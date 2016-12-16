@@ -56,10 +56,6 @@ interface keplerian
     module procedure keplerian_state
 end interface keplerian
 
-interface state
-    module procedure state_init
-end interface state
-
 interface period
     module procedure period_dp
     module procedure period_state
@@ -67,11 +63,11 @@ end interface period
 
 private
 
-public :: state, rotate_inplace, rotate, cartesian, keplerian, state_from_elements, framelen, period
+public :: state, init_state, rotate_inplace, rotate, cartesian, keplerian, state_from_elements, framelen, period
 
 contains
 
-function state_init(ep, rv, frame, center) result(s)
+function init_state(ep, rv, frame, center) result(s)
     type(epoch), intent(in) :: ep
     real(dp), dimension(:), intent(in) :: rv
     character(len=*), intent(in), optional :: frame
@@ -84,7 +80,7 @@ function state_init(ep, rv, frame, center) result(s)
     if (present(frame)) s%frame = frame
     s%center = earth
     if (present(center)) s%center = center
-end function state_init
+end function init_state
 
 subroutine rotate_inplace(s, to, err)
     type(state), intent(inout) :: s
@@ -281,7 +277,6 @@ function period_state(s) result(p)
     real(dp) :: p
 
     real(dp), dimension(6) :: el
-    real(dp) :: a3
 
     el = keplerian(s)
     p = period_dp(el(1), s%center%mu)
