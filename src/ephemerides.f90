@@ -109,15 +109,18 @@ interface jplephem
 end interface jplephem
 
 interface getposition
-    module procedure getposition_jplephem
+    module procedure getposition_jplephem_name
+    module procedure getposition_jplephem_id
 end interface getposition
 
 interface getvelocity
-    module procedure getvelocity_jplephem
+    module procedure getvelocity_jplephem_name
+    module procedure getvelocity_jplephem_id
 end interface getvelocity
 
 interface getstate
-    module procedure getstate_jplephem
+    module procedure getstate_jplephem_name
+    module procedure getstate_jplephem_id
 end interface getstate
 
 class(ephemeris), allocatable :: ephem
@@ -129,11 +132,11 @@ public :: daf, jplephem, ephemeris, ephem, naifid, init_ephemeris, getpath, &
 
 contains
 
-function getposition_jplephem(eph, ep, to, from, err) result(r)
+function getposition_jplephem_name(eph, ep, to, from, err) result(r)
     class(ephemeris), intent(inout) :: eph
     type(epoch), intent(in) :: ep
-    class(*), intent(in) :: to
-    class(*), intent(in), optional :: from
+    character(len=*), intent(in) :: to
+    character(len=*), intent(in), optional :: from
     type(exception), intent(inout), optional :: err
     real(dp), dimension(3) :: r
 
@@ -142,45 +145,7 @@ function getposition_jplephem(eph, ep, to, from, err) result(r)
     integer :: from_
 
     r = 0._dp
-    select type (to)
-    type is (character(len=*))
-        to_ = naifid(to, err_)
-        if (iserror(err_)) then
-            call catch(err_, "getposition_jplephem_name", __FILE__, __LINE__)
-            if (present(err)) then
-                err = err_
-                return
-            else
-                call raise(err_)
-            end if
-        end if
-    type is (integer)
-        to_ = to
-    end select
-
-    from_ = 0
-    if (present(from)) then
-        select type (from)
-        type is (character(len=*))
-            from_ = naifid(from, err_)
-            if (iserror(err_)) then
-                call catch(err_, "getposition_jplephem_name", __FILE__, __LINE__)
-                if (present(err)) then
-                    err = err_
-                    return
-                else
-                    call raise(err_)
-                end if
-            end if
-        type is (integer)
-            from_ = from
-        end select
-    end if
-
-    ! select type (eph)
-    ! class is (ephemeris)
-        r = eph%position(ep, to_, from_, err_)
-    ! end select
+    to_ = naifid(to, err_)
     if (iserror(err_)) then
         call catch(err_, "getposition_jplephem_name", __FILE__, __LINE__)
         if (present(err)) then
@@ -190,13 +155,68 @@ function getposition_jplephem(eph, ep, to, from, err) result(r)
             call raise(err_)
         end if
     end if
-end function getposition_jplephem
+    from_ = 0
+    if (present(from)) then
+        from_ = naifid(from, err_)
+        if (iserror(err_)) then
+            call catch(err_, "getposition_jplephem_name", __FILE__, __LINE__)
+            if (present(err)) then
+                err = err_
+                return
+            else
+                call raise(err_)
+            end if
+        end if
+    end if
+    select type (eph)
+    class is (ephemeris)
+        r = eph%position(ep, to_, from_, err_)
+    end select
+    if (iserror(err_)) then
+        call catch(err_, "getposition_jplephem_name", __FILE__, __LINE__)
+        if (present(err)) then
+            err = err_
+            return
+        else
+            call raise(err_)
+        end if
+    end if
+end function getposition_jplephem_name
 
-function getvelocity_jplephem(eph, ep, to, from, err) result(r)
+function getposition_jplephem_id(eph, ep, to, from, err) result(r)
+    class(ephemeris), intent(inout) :: eph
+    type(epoch), intent(in) :: ep
+    integer, intent(in) :: to
+    integer, intent(in), optional :: from
+    type(exception), intent(inout), optional :: err
+    real(dp), dimension(3) :: r
+
+    type(exception) :: err_
+    integer :: from_
+
+    r = 0._dp
+    from_ = 0
+    if (present(from)) from_ = from
+    select type (eph)
+    class is (ephemeris)
+        r = eph%position(ep, to, from_, err_)
+    end select
+    if (iserror(err_)) then
+        call catch(err_, "getposition_jplephem_id", __FILE__, __LINE__)
+        if (present(err)) then
+            err = err_
+            return
+        else
+            call raise(err_)
+        end if
+    end if
+end function getposition_jplephem_id
+
+function getvelocity_jplephem_name(eph, ep, to, from, err) result(r)
     type(jplephem), intent(inout) :: eph
     type(epoch), intent(in) :: ep
-    class(*), intent(in) :: to
-    class(*), intent(in), optional :: from
+    character(len=*), intent(in) :: to
+    character(len=*), intent(in), optional :: from
     type(exception), intent(inout), optional :: err
     real(dp), dimension(3) :: r
 
@@ -205,9 +225,19 @@ function getvelocity_jplephem(eph, ep, to, from, err) result(r)
     integer :: from_
 
     r = 0._dp
-    select type (to)
-    type is (character(len=*))
-        to_ = naifid(to, err_)
+    to_ = naifid(to, err_)
+    if (iserror(err_)) then
+        call catch(err_, "getvelocity_jplephem_name", __FILE__, __LINE__)
+        if (present(err)) then
+            err = err_
+            return
+        else
+            call raise(err_)
+        end if
+    end if
+    from_ = 0
+    if (present(from)) then
+        from_ = naifid(from, err_)
         if (iserror(err_)) then
             call catch(err_, "getvelocity_jplephem_name", __FILE__, __LINE__)
             if (present(err)) then
@@ -217,27 +247,6 @@ function getvelocity_jplephem(eph, ep, to, from, err) result(r)
                 call raise(err_)
             end if
         end if
-    type is (integer)
-        to_ = to
-    end select
-
-    from_ = 0
-    if (present(from)) then
-        select type(from)
-        type is (character(len=*))
-            from_ = naifid(from, err_)
-            if (iserror(err_)) then
-                call catch(err_, "getvelocity_jplephem_name", __FILE__, __LINE__)
-                if (present(err)) then
-                    err = err_
-                    return
-                else
-                    call raise(err_)
-                end if
-            end if
-        type is (integer)
-            from_ = from
-        end select
     end if
     r = eph%velocity(ep, to_, from_, err_)
     if (iserror(err_)) then
@@ -249,13 +258,39 @@ function getvelocity_jplephem(eph, ep, to, from, err) result(r)
             call raise(err_)
         end if
     end if
-end function getvelocity_jplephem
+end function getvelocity_jplephem_name
 
-function getstate_jplephem(eph, ep, to, from, err) result(r)
+function getvelocity_jplephem_id(eph, ep, to, from, err) result(r)
     type(jplephem), intent(inout) :: eph
     type(epoch), intent(in) :: ep
-    class(*), intent(in) :: to
-    class(*), intent(in), optional :: from
+    integer, intent(in) :: to
+    integer, intent(in), optional :: from
+    type(exception), intent(inout), optional :: err
+    real(dp), dimension(3) :: r
+
+    type(exception) :: err_
+    integer :: from_
+
+    r = 0._dp
+    from_ = 0
+    if (present(from)) from_ = from
+    r = eph%velocity(ep, to, from_, err_)
+    if (iserror(err_)) then
+        call catch(err_, "getvelocity_jplephem_id", __FILE__, __LINE__)
+        if (present(err)) then
+            err = err_
+            return
+        else
+            call raise(err_)
+        end if
+    end if
+end function getvelocity_jplephem_id
+
+function getstate_jplephem_name(eph, ep, to, from, err) result(r)
+    type(jplephem), intent(inout) :: eph
+    type(epoch), intent(in) :: ep
+    character(len=*), intent(in) :: to
+    character(len=*), intent(in), optional :: from
     type(exception), intent(inout), optional :: err
     real(dp), dimension(6) :: r
 
@@ -264,9 +299,19 @@ function getstate_jplephem(eph, ep, to, from, err) result(r)
     integer :: from_
 
     r = 0._dp
-    select type (to)
-    type is (character(len=*))
-        to_ = naifid(to, err_)
+    to_ = naifid(to, err_)
+    if (iserror(err_)) then
+        call catch(err_, "getstate_jplephem_name", __FILE__, __LINE__)
+        if (present(err)) then
+            err = err_
+            return
+        else
+            call raise(err_)
+        end if
+    end if
+    from_ = 0
+    if (present(from)) then
+        from_ = naifid(from, err_)
         if (iserror(err_)) then
             call catch(err_, "getstate_jplephem_name", __FILE__, __LINE__)
             if (present(err)) then
@@ -276,27 +321,6 @@ function getstate_jplephem(eph, ep, to, from, err) result(r)
                 call raise(err_)
             end if
         end if
-    type is (integer)
-        to_ = to
-    end select
-
-    from_ = 0
-    if (present(from)) then
-        select type (from)
-        type is (character(len=*))
-            from_ = naifid(from, err_)
-            if (iserror(err_)) then
-                call catch(err_, "getstate_jplephem_name", __FILE__, __LINE__)
-                if (present(err)) then
-                    err = err_
-                    return
-                else
-                    call raise(err_)
-                end if
-            end if
-        type is (integer)
-            from_ = from
-        end select
     end if
     r = eph%state(ep, to_, from_, err_)
     if (iserror(err_)) then
@@ -308,7 +332,33 @@ function getstate_jplephem(eph, ep, to, from, err) result(r)
             call raise(err_)
         end if
     end if
-end function getstate_jplephem
+end function getstate_jplephem_name
+
+function getstate_jplephem_id(eph, ep, to, from, err) result(r)
+    type(jplephem), intent(inout) :: eph
+    type(epoch), intent(in) :: ep
+    integer, intent(in) :: to
+    integer, intent(in), optional :: from
+    type(exception), intent(inout), optional :: err
+    real(dp), dimension(6) :: r
+
+    type(exception) :: err_
+    integer :: from_
+
+    r = 0._dp
+    from_ = 0
+    if (present(from)) from_ = from
+    r = eph%state(ep, to, from_, err_)
+    if (iserror(err_)) then
+        call catch(err_, "getstate_jplephem_id", __FILE__, __LINE__)
+        if (present(err)) then
+            err = err_
+            return
+        else
+            call raise(err_)
+        end if
+    end if
+end function getstate_jplephem_id
 
 subroutine init_ephemeris(denum)
     character(len=3), intent(in), optional :: denum
