@@ -9,6 +9,9 @@ module util
 
 use, intrinsic :: iso_fortran_env, only: error_unit
 use types, only: dp
+#if defined(__INTEL_COMPILER)
+use ifport
+#endif
 
 implicit none
 
@@ -38,8 +41,19 @@ function projectdir(sub) result(p)
     character(len=:), allocatable :: p
 
     integer :: ind
+#if defined(__INTEL_COMPILER)
+    character(len=1024) :: buf
+#endif
 
+
+#if defined(__INTEL_COMPILER)
     p = __FILE__
+    ind = fullpathqq(p, buf)
+    p = buf(:ind)
+#else
+    p = __FILE__
+#endif
+    print *, p
     ind = index(p(1:index(p, sep, .true.) - 1), sep, .true.) - 1
     if (present(sub)) then
         p = joinpath(p(1:ind), sub)

@@ -45,11 +45,14 @@ use integrators, only: integrate
 use math, only: eps, isapprox, norm, pih, cross, cot, linspace, findroot, &
     isin
 use states, only: state, framelen
-use trajectories, only: add_node, save_trajectory, trajectory, init_trajectory_array, &
-    init_trajectory
+use trajectories, only: trajectory, add_node, save_trajectory
 use types, only: dp
 
 implicit none
+
+private
+
+public :: kepler, solve_kepler, state_propagator, trajectory_propagator, ode
 
 type, abstract :: propagator
 contains
@@ -59,7 +62,9 @@ end type propagator
 
 abstract interface
     function abstract_trajectory(p, s0, epd, err) result(tra)
-        import :: propagator, state, epochdelta, exception, trajectory
+        ! ifort workaround
+        use trajectories, only: trajectory
+        import :: propagator, state, epochdelta, exception
         class(propagator), intent(inout), target :: p
         type(state), intent(in) :: s0
         type(epochdelta), intent(in) :: epd
@@ -68,7 +73,7 @@ abstract interface
     end function abstract_trajectory
 
     function abstract_state(p, s0, epd, err) result(s)
-        import :: propagator, state, epochdelta, exception, trajectory
+        import :: propagator, state, epochdelta, exception
         class(propagator), intent(inout), target :: p
         type(state), intent(in) :: s0
         type(epochdelta), intent(in) :: epd
@@ -110,10 +115,6 @@ end type ode
 interface ode
     module procedure :: ode_init
 end interface ode
-
-private
-
-public :: kepler, solve_kepler, state_propagator, trajectory_propagator, ode
 
 contains
 
@@ -185,7 +186,6 @@ subroutine callback(nr, told, t, y, n, con, icomp,&
     integer :: i
     logical :: firststep
     real(dp), dimension(n) :: yevt
-    type(exception) :: err_
     real(dp) :: tevt
     logical :: passed
 
@@ -333,7 +333,7 @@ function ode_trajectory(p, s0, epd, err) result(tra)
     real(dp) :: tend
 
     p%parameters = parameters(s0, p%frame, p%center)
-    allocate(p%parameters%trajectory, source=init_trajectory(s0))
+    allocate(p%parameters%trajectory, source=trajectory(s0))
     p_ => null()
     ! Gfortran workaround
     select type (p)
@@ -427,7 +427,7 @@ function kepler_trajectory(p, s0, epd, err) result(tra)
             end if
         end if
     end do
-    tra = init_trajectory_array(s0, times, vectors)
+    tra = trajectory(s0, times, vectors)
 end function kepler_trajectory
 
 function kepler_state(p, s0, epd, err) result(s1)

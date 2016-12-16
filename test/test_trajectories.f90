@@ -3,7 +3,7 @@ program testtrajectories
 use assertions
 use epochs, only: epoch
 use exceptions
-use interfaces, only: state, trajectory
+use states, only: state
 use trajectories
 use types, only: dp
 

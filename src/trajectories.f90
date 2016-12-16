@@ -20,8 +20,7 @@ implicit none
 
 private
 
-public :: tranode, trajectory, len_dirty, add_node, isdirty, save_trajectory, getfield, init_trajectory, &
-    init_trajectory_array
+public :: tranode, trajectory, len_dirty, add_node, isdirty, save_trajectory, getfield
 
 integer, parameter :: fieldlen = 12
 
@@ -45,6 +44,11 @@ end type trajectory
 interface tranode
     module procedure init_tranode
 end interface tranode
+
+interface trajectory
+    module procedure init_trajectory_array
+    module procedure init_trajectory
+end interface trajectory
 
 contains
 
