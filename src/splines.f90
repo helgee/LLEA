@@ -46,6 +46,7 @@ module splines
 
 use exceptions
 use types, only: dp
+use util, only: resize
 
 implicit none
 
@@ -143,7 +144,7 @@ function init_spline1d(x, y, w, k, s, bc, err) result(spl)
     if (present(w)) then
         if (size(w) /= m) err_ = error("Length of x and w must match.", "init_spline1d", __FILE__, __LINE__)
     end if
-    if (m < k_) err_ = error("Length of x must be greater than k.", "init_spline1d", __FILE__, __LINE__)
+    if (m <= k_) err_ = error("Length of x must be greater than k.", "init_spline1d", __FILE__, __LINE__)
     if (iserror(err_)) then
         if (present(err)) then
             err = err_
@@ -162,9 +163,18 @@ function init_spline1d(x, y, w, k, s, bc, err) result(spl)
     allocate(iwrk(nest))
 
     call curfit(0, m, x, y, w_, x(1), x(m), k_, s_, nest, n, t, c, fp, wrk, lwrk, iwrk, ier)
+    if (ier > 0) then
+        err_ = error("s is too small or other invalid input.", "init_spline1d", __FILE__, __LINE__)
+        if (present(err)) then
+            err = err_
+            return
+        else
+            call raise(err_)
+        end if
+    end if
     ! Resize output arrays
-    t = t(:n)
-    c = c(:n-k_-1)
+    call resize(t, n)
+    call resize(c, n-k_-1)
     spl = spline1d(t, c, k_, translate_bc(bc_, err_), fp)
     if (iserror(err_)) then
         call catch(err_, "init_spline1d", __FILE__, __LINE__)

@@ -32,9 +32,21 @@ end interface joinpath
 private
 
 public :: stop_error, printbool, joinpath, sep, mode_open,&
-    timestamp_file, uppercase, projectdir
+    timestamp_file, uppercase, projectdir, resize
 
 contains
+
+subroutine resize(arr, n)
+    real(dp), dimension(:), intent(inout), allocatable :: arr
+    integer, intent(in) :: n
+
+    real(dp), dimension(:), allocatable :: tmp
+
+    call move_alloc(arr, tmp)
+    allocate(arr(n))
+    arr = 0._dp
+    arr(:n) = tmp(:n)
+end subroutine resize
 
 function projectdir(sub) result(p)
     character(len=*), intent(in), optional :: sub
