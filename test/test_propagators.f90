@@ -26,7 +26,9 @@ type(kepler) :: kep
 type(epoch) :: ep
 type(state) :: s0
 type(state) :: s1
+type(state) :: se
 type(epochdelta) :: epd
+type(epochdelta) :: epd2
 type(trajectory) :: tra
 type(ode) :: o
 
@@ -64,13 +66,18 @@ kep = kepler()
 tra = gettrajectory(s0, epd, kep)
 call assert_almost_equal(tra%final_state%rv, rv1exp, __LINE__)
 
-o = ode(maxstep=100._dp)
+o = ode(maxstep=10._dp)
 s1 = getstate(s0, epd, o)
 call assert_almost_equal(s1%rv, rv1exp, __LINE__)
 
 tra = gettrajectory(s0, epd, o)
+epd2 = epochdelta(seconds=dt/2)
+se = getstate(s0, epd2, o)
 call assert_false(isdirty(tra), __LINE__)
 call assert_almost_equal(tra%final_state%rv, rv1exp, __LINE__)
+
+s1 = getstate(tra, epd2)
+call assert_almost_equal(s1%rv, se%rv, __LINE__)
 
 o = ode(maxstep=100._dp, events=[event(detect=pericenter(), abort=.true.)])
 s1 = getstate(s0, 86400._dp, o)

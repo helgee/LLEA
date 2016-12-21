@@ -10,7 +10,7 @@
 !
 module trajectories
 
-use epochs, only: epochdelta, operator (+)
+use epochs, only: epochdelta, operator (+), seconds
 use exceptions
 use splines, only: spline1d, evaluate
 use states, only: state
@@ -20,7 +20,8 @@ implicit none
 
 private
 
-public :: tranode, trajectory, len_dirty, add_node, isdirty, save_trajectory, getfield
+public :: tranode, trajectory, len_dirty, add_node, isdirty, save_trajectory, getfield, state_trajectory, &
+    interpolate_scalar
 
 integer, parameter :: fieldlen = 12
 
@@ -181,6 +182,71 @@ subroutine generate_splines(tra)
         tra%spl(i) = spline1d(tra%t, tra%y(i,:), bc="extrapolate")
     end do
 end subroutine generate_splines
+
+function interpolate_scalar(tra, t, n, extrapolate, err) result(y)
+    type(trajectory), intent(in) :: tra
+    real(dp), intent(in) :: t
+    integer, intent(in), optional :: n
+    logical, intent(in), optional :: extrapolate
+    type(exception), intent(inout), optional :: err
+    real(dp), dimension(:), allocatable :: y
+
+    integer :: n_
+    integer :: i
+    logical :: extrapolate_
+    type(exception) :: err_
+
+    n_ = size(tra%fields)
+    if (present(n)) then
+        if (n < n_) n_ = n
+    end if
+    extrapolate_ = .false.
+    if (present(extrapolate)) extrapolate_ = extrapolate
+
+    if ((t < tra%t(1).or.t > tra%t(size(tra%t))).and..not.extrapolate_) then
+        err_ = error("t is outside range.", "interpolate_scalar", __FILE__, __LINE__)
+        if (present(err)) then
+            err = err_
+            return
+        else
+            call raise(err_)
+        end if
+    end if
+
+    allocate(y(n_))
+    do i = 1, n_
+        y(i) = evaluate(tra%spl(i), t)
+    end do
+end function interpolate_scalar
+
+function state_trajectory(tra, epd, extrapolate, err) result(s)
+    type(trajectory), intent(in) :: tra
+    type(epochdelta), intent(in) :: epd
+    logical, intent(in), optional :: extrapolate
+    type(exception), intent(inout), optional :: err
+    type(state) :: s
+
+    logical :: extrapolate_
+    type(exception) :: err_
+    real(dp), dimension(:), allocatable :: y
+    real(dp) :: t
+
+    extrapolate_ = .false.
+    if (present(extrapolate)) extrapolate_ = extrapolate
+
+    t = seconds(epd)
+    y = interpolate_scalar(tra, t, extrapolate=extrapolate_, err=err_)
+    if (iserror(err_)) then
+        call catch(err_, "state_trajectory", __FILE__, __LINE__)
+        if (present(err)) then
+            err = err_
+            return
+        else
+            call raise(err_)
+        end if
+    end if
+    s = state(tra%initial_state%ep + epd, y, tra%initial_state%frame, tra%initial_state%center)
+end function state_trajectory
 
 recursive subroutine delete_node(node)
     type(tranode), pointer :: node
