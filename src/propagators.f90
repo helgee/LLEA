@@ -42,8 +42,7 @@ use events, only: findevent, event
 use exceptions
 use forces, only: model, gravity, drag, thirdbody, uniformgravity
 use integrators, only: integrate
-use math, only: eps, isapprox, norm, pih, cross, cot, linspace, findroot, &
-    isin
+use math, only: eps, isapprox, norm, pih, cross, cot, linspace, isin
 use states, only: state, framelen
 use trajectories, only: trajectory, add_node, save_trajectory
 use types, only: dp

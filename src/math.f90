@@ -90,6 +90,20 @@ interface isin
     module procedure isin_matrix_int
 end interface isin
 
+interface findroot
+    module procedure findroot_brent
+    module procedure findroot_steffensen
+end interface findroot
+
+abstract interface
+    function func(x, rpar) result(res)
+        import :: dp
+        real(dp), intent(in) :: x
+        real(dp), dimension(:), intent(in) :: rpar
+        real(dp) :: res
+    end function func
+end interface
+
 contains
 
 elemental function cot(arg) result(res)
@@ -617,18 +631,12 @@ end function interp
 !
 ! Returns:
 !   root - Root of the function.
-function findroot(fun, xa, xb, thunk, xtol, rtol, max_iter, err)&
+function findroot_brent(f, xa, xb, rpar, xtol, rtol, max_iter, err)&
         result(root)
-    interface
-        real(dp) function fun(x, thunk)
-            import :: dp, c_ptr
-            real(dp), intent(in) :: x
-            type(c_ptr), intent(in) :: thunk
-        end function fun
-    end interface
+    procedure(func) :: f
     real(dp), intent(in) :: xa
     real(dp), intent(in) :: xb
-    type(c_ptr), intent(in), optional :: thunk
+    real(dp), intent(in), optional :: rpar
     real(dp), intent(in), optional :: xtol
     real(dp), intent(in), optional :: rtol
     integer, intent(in), optional :: max_iter
@@ -637,7 +645,6 @@ function findroot(fun, xa, xb, thunk, xtol, rtol, max_iter, err)&
     real(dp) :: root
 
     type(exception) :: err_
-    type(c_ptr) :: thunk_
 
     real(dp) :: fpre
     real(dp) :: fcur
@@ -654,12 +661,18 @@ function findroot(fun, xa, xb, thunk, xtol, rtol, max_iter, err)&
     real(dp) :: dpre
     real(dp) :: dblk
     real(dp) :: tol
+    real(dp), dimension(:), allocatable :: rpar_
 
     integer :: max_iter_
     integer :: i
 
-    thunk_ = c_null_ptr
-    if (present(thunk)) thunk_ = thunk
+    if (present(rpar)) then
+        rpar_ = rpar
+    else
+        allocate(rpar_(1))
+        rpar_ = 0._dp
+    end if
+
     i = 0
     fblk = 0._dp
     xblk = 0._dp
@@ -678,8 +691,8 @@ function findroot(fun, xa, xb, thunk, xtol, rtol, max_iter, err)&
     rtol_ = sqrt(eps)
     if (present(rtol)) rtol_ = rtol
 
-    fpre = fun(xpre, thunk_)
-    fcur = fun(xcur, thunk_)
+    fpre = f(xpre, rpar_)
+    fcur = f(xcur, rpar_)
 
     if (fpre * fcur > 0._dp) then
         err_ = error("Root not in bracket.", "findroot", __FILE__, __LINE__)
@@ -757,11 +770,72 @@ function findroot(fun, xa, xb, thunk, xtol, rtol, max_iter, err)&
             if (sbis < 0._dp) xcur = xcur - tol
         end if
 
-        fcur = fun(xcur, thunk_)
+        fcur = f(xcur, rpar_)
 
         i = i + 1
     end do
-end function findroot
+end function findroot_brent
+
+function findroot_steffensen(fun, x, rpar, rtol, atol, maxiter, err) result(root)
+    procedure(func) :: fun
+    real(dp), intent(in) :: x
+    real(dp), dimension(:), intent(in), optional :: rpar
+    real(dp), intent(in), optional :: rtol
+    real(dp), intent(in), optional :: atol
+    integer, intent(in), optional :: maxiter
+    type(exception), intent(inout), optional :: err
+    real(dp) :: root
+
+    real(dp) :: f
+    real(dp) :: f1
+    real(dp) :: f2
+    real(dp) :: atol_
+    real(dp) :: rtol_
+    real(dp), dimension(:), allocatable :: rpar_
+    logical :: converged
+    type(exception) :: err_
+    integer :: i
+
+    integer :: maxiter_
+
+    maxiter_ = 1000
+    if (present(maxiter)) maxiter_ = maxiter
+
+    atol_ = 0._dp
+    if (present(atol)) atol_ = atol
+
+    rtol_ = sqrt(eps)
+    if (present(rtol)) rtol_ = rtol
+
+    if (present(rpar)) then
+        rpar_ = rpar
+    else
+        allocate(rpar_(1))
+        rpar_ = 0._dp
+    end if
+
+    root = x
+    converged = .false.
+
+    do i = 1, maxiter_
+        f1 = root + fun(root, rpar_)
+        f2 = f1 + fun(f1, rpar_)
+        f = root - (f1 - root)**2 / (f2 - 2 * f1 + root)
+        converged = isapprox(f, root, rtol=rtol_, atol=atol_)
+        if (converged) exit
+        root = f
+    end do
+
+    if (.not.converged) then
+        err_ = error("Failed to converge.", "findroot_steffensen", __FILE__, __LINE__)
+        if (present(err)) then
+            err = err_
+            return
+        else
+            call raise(err_)
+        end if
+    end if
+end function findroot_steffensen
 
 ! Function: issorted
 !   Tests whether an array is monotonically increasing or decreasing.
