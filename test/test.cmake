@@ -41,3 +41,7 @@ add_test(TEST_STATES test_states)
 add_executable(test_trajectories test/test_trajectories.f90)
 target_link_libraries(test_trajectories llea)
 add_test(TEST_TRAJECTORIES test_trajectories)
+
+add_executable(test_libration test/test_libration.f90)
+target_link_libraries(test_libration llea)
+add_test(TEST_LIBRATION test_libration)

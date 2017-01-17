@@ -11,6 +11,7 @@ set(LLEA_SRCS
     src/forces.f90
     src/integrators.f90
     src/interfaces.f90
+    src/libration.f90
     src/llea.f90
     src/math.f90
     src/naif.f90
