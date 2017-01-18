@@ -96,10 +96,11 @@ interface findroot
 end interface findroot
 
 abstract interface
-    function func(x, rpar) result(res)
+    function func(x, rpar, ipar) result(res)
         import :: dp
         real(dp), intent(in) :: x
         real(dp), dimension(:), intent(in) :: rpar
+        integer, dimension(:), intent(in) :: ipar
         real(dp) :: res
     end function func
 end interface
@@ -631,12 +632,13 @@ end function interp
 !
 ! Returns:
 !   root - Root of the function.
-function findroot_brent(f, xa, xb, rpar, xtol, rtol, max_iter, err)&
+function findroot_brent(f, xa, xb, rpar, ipar, xtol, rtol, max_iter, err)&
         result(root)
     procedure(func) :: f
     real(dp), intent(in) :: xa
     real(dp), intent(in) :: xb
-    real(dp), intent(in), optional :: rpar
+    real(dp), dimension(:), intent(in), optional :: rpar
+    integer, dimension(:), intent(in), optional :: ipar
     real(dp), intent(in), optional :: xtol
     real(dp), intent(in), optional :: rtol
     integer, intent(in), optional :: max_iter
@@ -662,6 +664,7 @@ function findroot_brent(f, xa, xb, rpar, xtol, rtol, max_iter, err)&
     real(dp) :: dblk
     real(dp) :: tol
     real(dp), dimension(:), allocatable :: rpar_
+    integer, dimension(:), allocatable :: ipar_
 
     integer :: max_iter_
     integer :: i
@@ -671,6 +674,13 @@ function findroot_brent(f, xa, xb, rpar, xtol, rtol, max_iter, err)&
     else
         allocate(rpar_(1))
         rpar_ = 0._dp
+    end if
+
+    if (present(ipar)) then
+        ipar_ = ipar
+    else
+        allocate(ipar_(1))
+        ipar_ = 0
     end if
 
     i = 0
@@ -691,8 +701,8 @@ function findroot_brent(f, xa, xb, rpar, xtol, rtol, max_iter, err)&
     rtol_ = sqrt(eps)
     if (present(rtol)) rtol_ = rtol
 
-    fpre = f(xpre, rpar_)
-    fcur = f(xcur, rpar_)
+    fpre = f(xpre, rpar_, ipar_)
+    fcur = f(xcur, rpar_, ipar_)
 
     if (fpre * fcur > 0._dp) then
         err_ = error("Root not in bracket.", "findroot", __FILE__, __LINE__)
@@ -770,16 +780,17 @@ function findroot_brent(f, xa, xb, rpar, xtol, rtol, max_iter, err)&
             if (sbis < 0._dp) xcur = xcur - tol
         end if
 
-        fcur = f(xcur, rpar_)
+        fcur = f(xcur, rpar_, ipar_)
 
         i = i + 1
     end do
 end function findroot_brent
 
-function findroot_steffensen(fun, x, rpar, rtol, atol, maxiter, err) result(root)
+function findroot_steffensen(fun, x, rpar, ipar, rtol, atol, maxiter, err) result(root)
     procedure(func) :: fun
     real(dp), intent(in) :: x
     real(dp), dimension(:), intent(in), optional :: rpar
+    integer, dimension(:), intent(in), optional :: ipar
     real(dp), intent(in), optional :: rtol
     real(dp), intent(in), optional :: atol
     integer, intent(in), optional :: maxiter
@@ -792,6 +803,7 @@ function findroot_steffensen(fun, x, rpar, rtol, atol, maxiter, err) result(root
     real(dp) :: atol_
     real(dp) :: rtol_
     real(dp), dimension(:), allocatable :: rpar_
+    integer, dimension(:), allocatable :: ipar_
     logical :: converged
     type(exception) :: err_
     integer :: i
@@ -814,12 +826,19 @@ function findroot_steffensen(fun, x, rpar, rtol, atol, maxiter, err) result(root
         rpar_ = 0._dp
     end if
 
+    if (present(ipar)) then
+        ipar_ = ipar
+    else
+        allocate(ipar_(1))
+        ipar_ = 0
+    end if
+
     root = x
     converged = .false.
 
     do i = 1, maxiter_
-        f1 = root + fun(root, rpar_)
-        f2 = f1 + fun(f1, rpar_)
+        f1 = root + fun(root, rpar_, ipar_)
+        f2 = f1 + fun(f1, rpar_, ipar_)
         f = root - (f1 - root)**2 / (f2 - 2 * f1 + root)
         converged = isapprox(f, root, rtol=rtol_, atol=atol_)
         if (converged) exit

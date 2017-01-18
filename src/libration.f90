@@ -12,9 +12,10 @@ public :: librationdist
 
 contains
 
-function l1dist(x, rpar) result(res)
+function l1dist(x, rpar, ipar) result(res)
     real(dp), intent(in) :: x
     real(dp), dimension(:), intent(in) :: rpar
+    integer, dimension(:), intent(in) :: ipar
     real(dp) :: res
     real(dp) :: mu
 
@@ -22,9 +23,10 @@ function l1dist(x, rpar) result(res)
     res = x**3._dp - mu * (1._dp - x)**2._dp / (3._dp - 2._dp * mu - x * (3._dp - mu - x))
 end function l1dist
 
-function l2dist(x, rpar) result(res)
+function l2dist(x, rpar, ipar) result(res)
     real(dp), intent(in) :: x
     real(dp), dimension(:), intent(in) :: rpar
+    integer, dimension(:), intent(in) :: ipar
     real(dp) :: res
     real(dp) :: mu
 
@@ -32,9 +34,10 @@ function l2dist(x, rpar) result(res)
     res = x**3._dp - mu * (1._dp + x)**2._dp / (3._dp - 2._dp * mu + x * (3._dp - mu + x))
 end function l2dist
 
-function l3dist(x, rpar) result(res)
+function l3dist(x, rpar, ipar) result(res)
     real(dp), intent(in) :: x
     real(dp), dimension(:), intent(in) :: rpar
+    integer, dimension(:), intent(in) :: ipar
     real(dp) :: res
     real(dp) :: mu
 
