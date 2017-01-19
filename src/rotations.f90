@@ -145,9 +145,9 @@ function rotationmatrix_single(axis, angle, err) result(m)
         m(3,3) = cosa
     case ("2", "y", "Y")
         m(1,1) = cosa
-        m(1,3) = sina
+        m(1,3) = -sina
         m(2,2) = 1._dp
-        m(3,1) = -sina
+        m(3,1) = sina
         m(3,3) = cosa
     case("3", "z", "Z")
         m(1,1) = cosa
