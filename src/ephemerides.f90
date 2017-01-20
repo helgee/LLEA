@@ -364,10 +364,12 @@ subroutine init_ephemeris(denum)
     character(len=3), intent(in), optional :: denum
 
     character(len=3) :: denum_
+    character(len=:), allocatable :: path
 
     denum_ = "430"
     if (present(denum)) denum_ = denum
-    allocate(ephem, source=jplephem(joinpath(projectdir("data"), "de"//denum//".bsp")))
+    path = joinpath(projectdir("data"), "de"//denum_//".bsp")
+    allocate(ephem, source=jplephem(path))
 end subroutine init_ephemeris
 
 function new_jplephem(path, err) result(eph)

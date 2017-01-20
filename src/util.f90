@@ -65,7 +65,6 @@ function projectdir(sub) result(p)
 #else
     p = __FILE__
 #endif
-    print *, p
     ind = index(p(1:index(p, sep, .true.) - 1), sep, .true.) - 1
     if (present(sub)) then
         p = joinpath(p(1:ind), sub)

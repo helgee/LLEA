@@ -20,6 +20,8 @@ real(dp), dimension(6) :: ref430
 real(dp), dimension(6) :: res6
 real(dp), dimension(3) :: res3
 
+call init_ephemeris()
+
 ep = epoch(2000, 1, 1, 12)
 ref405 = [-2.0529325063213453e7_dp,-6.032395669044396e7_dp,-3.013084448833336e7_dp,37.00430439938116_dp,-8.541375986872962_dp,-8.398373128367817_dp]
 ref430 = [-2.052932489501512e7_dp,-6.0323956764362626e7_dp,-3.0130843855883405e7_dp,37.00430445042317_dp,-8.541376874554961_dp,-8.398372276759316_dp]
@@ -75,7 +77,6 @@ eph = jplephem(path)
 res6 = eph%state(ep, 1)
 call assert_almost_equal(res6, ref405, __LINE__)
 
-print *, eph%daffile%name
 path = joinpath(projectdir("data"), "testpo.405")
 call jpltest(eph, path)
 
