@@ -360,16 +360,21 @@ function getstate_jplephem_id(eph, ep, to, from, err) result(r)
     end if
 end function getstate_jplephem_id
 
-subroutine init_ephemeris(denum)
+subroutine init_ephemeris(denum, path)
     character(len=3), intent(in), optional :: denum
+    character(len=*), intent(in), optional :: path
 
     character(len=3) :: denum_
-    character(len=:), allocatable :: path
+    character(len=:), allocatable :: path_
 
-    denum_ = "430"
-    if (present(denum)) denum_ = denum
-    path = joinpath(projectdir("data"), "de"//denum_//".bsp")
-    allocate(ephem, source=jplephem(path))
+    if (present(path)) then
+        path_ = path
+    else
+        denum_ = "430"
+        if (present(denum)) denum_ = denum
+        path_ = joinpath(projectdir("data"), "de"//denum_//".bsp")
+    end if
+    allocate(ephem, source=jplephem(path_))
 end subroutine init_ephemeris
 
 function new_jplephem(path, err) result(eph)

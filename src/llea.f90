@@ -36,10 +36,15 @@ implicit none
 
 contains
 
-function init_llea() result(code)
+function init_llea(ephempath) result(code)
+    character(len=*), intent(in), optional :: ephempath
     integer :: code
     call init_constants
-    call init_ephemeris
+    if (present(ephempath)) then
+        call init_ephemeris(path=ephempath)
+    else
+        call init_ephemeris
+    end if
     code = 0
 end function init_llea
 
