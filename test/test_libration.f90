@@ -44,4 +44,8 @@ call assert_almost_equal(lib, ref, __LINE__)
 eci = libtogcrf(lib, ep, earth, moon, "L2")
 call assert_almost_equal(eci, rv, __LINE__)
 
+lib = gcrftolib(rv, ep, earth, moon, "L2", normalise=.false.)
+eci = libtogcrf(lib, ep, earth, moon, "L2", normalise=.false.)
+call assert_almost_equal(eci, rv, __LINE__)
+
 end program testlibration

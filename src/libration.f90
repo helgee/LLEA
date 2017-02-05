@@ -103,12 +103,13 @@ subroutine rotationparams(rv, m, rm, omega)
     omega = om / rm**2
 end subroutine rotationparams
 
-function gcrftolib(rv, ep, primary, secondary, point, err) result(lib)
+function gcrftolib(rv, ep, primary, secondary, point, normalise, err) result(lib)
     real(dp), dimension(:), intent(in) :: rv
     type(epoch), intent(in) :: ep
     type(body), intent(in) :: primary
     type(body), intent(in) :: secondary
     character(len=*), intent(in) :: point
+    logical, intent(in), optional :: normalise
     type(exception), intent(inout), optional :: err
     real(dp), dimension(6) :: lib
 
@@ -118,6 +119,10 @@ function gcrftolib(rv, ep, primary, secondary, point, err) result(lib)
     real(dp), dimension(3,3) :: m
     real(dp) :: rm
     real(dp) :: omega
+    logical :: normalise_
+
+    normalise_ = .true.
+    if (present(normalise)) normalise_ = normalise
 
     gam = librationdist(primary%mu, secondary%mu, point, err=err_)
     if (iserror(err_)) then
@@ -144,16 +149,19 @@ function gcrftolib(rv, ep, primary, secondary, point, err) result(lib)
     call rotationparams(sec, m, rm, omega)
     lib(1:3) = matmul(transpose(m), lib(1:3))
     lib(4:6) = matmul(transpose(m), lib(4:6)) - [-omega * lib(2), omega * lib(1), 0._dp]
-    lib(1:3) = lib(1:3) / rm
-    lib(4:6) = lib(4:6) / (rm * omega)
+    if (normalise_) then
+        lib(1:3) = lib(1:3) / rm
+        lib(4:6) = lib(4:6) / (rm * omega)
+    end if
 end function gcrftolib
 
-function libtogcrf(lib, ep, primary, secondary, point, err) result(rv)
+function libtogcrf(lib, ep, primary, secondary, point, normalise, err) result(rv)
     real(dp), dimension(:), intent(in) :: lib
     type(epoch), intent(in) :: ep
     type(body), intent(in) :: primary
     type(body), intent(in) :: secondary
     character(len=*), intent(in) :: point
+    logical, intent(in), optional :: normalise
     type(exception), intent(inout), optional :: err
     real(dp), dimension(6) :: res
 
@@ -164,6 +172,10 @@ function libtogcrf(lib, ep, primary, secondary, point, err) result(rv)
     real(dp), dimension(3,3) :: m
     real(dp) :: rm
     real(dp) :: omega
+    logical :: normalise_
+
+    normalise_ = .true.
+    if (present(normalise)) normalise_ = normalise
 
     gam = librationdist(primary%mu, secondary%mu, point, err=err_)
     if (iserror(err_)) then
@@ -188,11 +200,13 @@ function libtogcrf(lib, ep, primary, secondary, point, err) result(rv)
 
     call rotationparams(sec, m, rm, omega)
     rv = lib
-    rv(4:6) = rv(4:6) + [-lib(2), lib(1), 0._dp]
-    rv(1:3) = matmul(m, rv(1:3))
+    if (normalise_) then
+        rv(1:3) = rv(1:3) * rm
+        rv(4:6) = rv(4:6) * omega * rm
+    end if
+    rv(4:6) = rv(4:6) + [-omega * rv(2), omega * rv(1), 0._dp]
     rv(4:6) = matmul(m, rv(4:6))
-    rv(1:3) = rv(1:3) * rm
-    rv(4:6) = rv(4:6) * omega * rm
+    rv(1:3) = matmul(m, rv(1:3))
     rv = rv + sec * (1 + gam)
 end function libtogcrf
 
