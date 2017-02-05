@@ -250,6 +250,15 @@ subroutine callback(nr, told, t, y, n, con, icomp,&
                 else
                     evt%tlog = [tevt]
                 end if
+
+                if (allocated(evt%tlog) .and. evt%numabort /= -1) then
+                    if (size(evt%tlog) == evt%numabort) then
+                        y = densestate(tevt, n, con, icomp)
+                        t = tevt
+                        irtrn = abort
+                        return
+                    end if
+                end if
             end if
         end do
     end if

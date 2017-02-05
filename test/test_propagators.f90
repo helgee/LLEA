@@ -97,4 +97,8 @@ o = ode(maxstep=100._dp, events=[event(detect=apocenter())])
 s1 = getstate(s0, period(s0)*3, o)
 call assert_equal(size(o%events(1)%tlog), 3, __LINE__)
 
+o = ode(maxstep=100._dp, events=[event(detect=apocenter(), numabort=2)])
+s1 = getstate(s0, period(s0)*3, o)
+call assert_equal(size(o%events(1)%tlog), 2, __LINE__)
+
 end program testpropgators

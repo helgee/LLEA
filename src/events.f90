@@ -35,6 +35,7 @@ end type detector
 type event
     logical :: done = .false.
     logical :: abort = .false.
+    integer :: numabort = -1
     real(dp), allocatable :: t
     real(dp), dimension(:), allocatable :: tlog
     class(detector), allocatable :: det
@@ -76,11 +77,12 @@ end interface event
 
 contains
 
-function event_init(t, detect, update, abort) result(evt)
+function event_init(t, detect, update, abort, numabort) result(evt)
     real(dp), intent(in), optional :: t
     class(detector), intent(in), optional :: detect
     class(updater), intent(in), optional :: update
     logical, intent(in), optional :: abort
+    integer, intent(in), optional :: numabort
     type(event) :: evt
 
     type(exception) :: err
@@ -95,6 +97,7 @@ function event_init(t, detect, update, abort) result(evt)
     if (present(detect)) allocate(evt%det, source=detect)
     if (present(update)) allocate(evt%up, source=update)
     if (present(abort)) evt%abort = abort
+    if (present(numabort)) evt%numabort = numabort
 end function event_init
 
 function detect_pericenter(this, t, p) result(res)
