@@ -14,6 +14,8 @@ use math, only: deg2rad
 
 implicit none
 
+type(body) :: sun
+
 ! planets
 type(body) :: mercury
 type(body) :: venus
@@ -31,12 +33,34 @@ real(dp), parameter :: au = 0.149597870700000000e+09_dp
 
 private
 
-public :: mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, moon, au, init_constants
-!DEC$ ATTRIBUTES DLLEXPORT :: mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, moon, au
+public :: sun, mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, moon, au, init_constants
+!DEC$ ATTRIBUTES DLLEXPORT :: sun, mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, moon, au
 
 contains
 
 subroutine init_constants
+    sun%name = "sun"
+    sun%parent = "ssb"
+    sun%bodytype = "star"
+    sun%id = 10
+    sun%mu = 1.32712440018e11_dp
+    !FIXME
+    sun%j2 = 0._dp
+    sun%radii = [696000._dp, 696000._dp, 696000._dp]
+    sun%ra = deg2rad([286.13_dp, 0._dp, 0._dp])
+    sun%dec = deg2rad([63.87_dp, 0._dp, 0._dp])
+    sun%ww = deg2rad([84.176_dp, 14.1844_dp, 0._dp])
+    allocate(sun%a(1))
+    allocate(sun%d(1))
+    allocate(sun%w(1))
+    allocate(sun%theta0(1))
+    allocate(sun%theta1(1))
+    sun%a = 0._dp
+    sun%d = 0._dp
+    sun%w = 0._dp
+    sun%theta0 = 0._dp
+    sun%theta1 = 0._dp
+
     mercury%name = "Mercury"
     mercury%parent = "Sun"
     mercury%bodytype = "Planet"
