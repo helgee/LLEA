@@ -568,6 +568,7 @@ integer :: nonsti
 ! *** *** *** *** *** *** ***
 !  initialisations
 ! *** *** *** *** *** *** ***
+nonsti=0
 if (meth == 1) call cdopri(c2,c3,c4,c5,e1,e3,e4,e5,e6,e7,  &
     a21,a31,a32,a41,a42,a43,a51,a52,a53,a54,  &
     a61,a62,a63,a64,a65,a71,a73,a74,a75,a76, d1,d3,d4,d5,d6,d7)
@@ -1599,6 +1600,7 @@ integer :: nonsti
 ! *** *** *** *** *** *** ***
 !  initialisations
 ! *** *** *** *** *** *** ***
+nonsti=0
 facold=1.d-4
 expo1=1.d0/8.d0-beta*0.2d0
 facc1=1.d0/fac1
