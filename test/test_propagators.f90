@@ -26,6 +26,8 @@ type(kepler) :: kep
 type(epoch) :: ep
 type(state) :: s0
 type(state) :: s1
+type(state) :: s1d
+type(state) :: s1ds
 type(state) :: se
 type(epochdelta) :: epd
 type(epochdelta) :: epd2
@@ -100,5 +102,14 @@ call assert_equal(size(o%events(1)%tlog), 3, __LINE__)
 o = ode(maxstep=100._dp, events=[event(detect=apocenter(), numabort=2)])
 s1 = getstate(s0, period(s0)*3, o)
 call assert_equal(size(o%events(1)%tlog), 2, __LINE__)
+
+s0 = state(ep, [au, 0._dp, 0._dp, 0._dp, 30000._dp, 0._dp], center=sun)
+o = ode(maxstep=1._dp, center=sun)
+s1ds = getstate(s0, seconds_per_day, o)
+s0%rv(4:6) = s0%rv(4:6) * seconds_per_day
+o = ode(days=.true., maxstep=1._dp/seconds_per_day)
+s1d = getstate(s0, 1._dp, o)
+s1d%rv(4:6) = s1d%rv(4:6) / seconds_per_day
+call assert_almost_equal(s1ds%rv, s1d%rv, __LINE__, rtol=1e-5_dp)
 
 end program testpropgators

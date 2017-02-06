@@ -126,8 +126,8 @@ subroutine j2gravity_update(this, f, t, y, p)
     f(1:3) = f(1:3) + y(4:6)
 
     pj = -3._dp / 2._dp * p%center%mu * p%center%j2 * p%center%radii(1)**2 / (r2*r3)
-    f(4:5) = -p%center%mu * y(1:2) / r3 + pj * y(1:2) * (1._dp - 5._dp * y(3)*y(3) / r2)
-    f(6) = -p%center%mu * y(3) / r3 + pj * y(3) * (3._dp - 5._dp * y(3)*y(3) / r2)
+    f(4:5) = f(4:5) - p%center%mu * y(1:2) / r3 + pj * y(1:2) * (1._dp - 5._dp * y(3)*y(3) / r2)
+    f(6) = f(6) - p%center%mu * y(3) / r3 + pj * y(3) * (3._dp - 5._dp * y(3)*y(3) / r2)
 end subroutine j2gravity_update
 
 function thirdbody_eval(this, t, y, p) result(f)
@@ -154,7 +154,11 @@ subroutine thirdbody_update(this, f, t, y, p)
     real(dp), dimension(3) :: rs3
     type(epoch) :: ep
 
-    ep = p%s0%ep + epochdelta(seconds=t)
+    if (p%days) then
+        ep = p%s0%ep + epochdelta(days=t)
+    else
+        ep = p%s0%ep + epochdelta(seconds=t)
+    end if
     if (allocated(this%bodies)) then
         do i = 1, size(this%bodies)
             mu = this%bodies(i)%mu

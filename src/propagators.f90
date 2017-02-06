@@ -37,7 +37,7 @@ use bodies, only: body
 use constants, only: earth
 use containers, only: parameters
 use dopri, only: densestate
-use epochs, only: epochdelta, seconds, operator (+)
+use epochs, only: epochdelta, seconds, operator (+), days
 use events, only: findevent, event
 use exceptions
 use forces, only: model, gravity, drag, thirdbody, uniformgravity
@@ -54,6 +54,7 @@ private
 public :: kepler, solve_kepler, state_propagator, trajectory_propagator, ode
 
 type, abstract :: propagator
+    logical :: days = .false.
 contains
     procedure(abstract_trajectory), deferred :: trajectory
     procedure(abstract_state), deferred :: state
@@ -117,7 +118,7 @@ end interface ode
 
 contains
 
-function ode_init(frame, integrator, center, maxstep, numstep, gravmodel, dragmodel, tbmodel, events) result(p)
+function ode_init(frame, integrator, center, maxstep, numstep, gravmodel, dragmodel, tbmodel, events, days) result(p)
     character(len=*), intent(in), optional :: frame
     character(len=*), intent(in), optional :: integrator
     type(body), intent(in), optional :: center
@@ -127,6 +128,7 @@ function ode_init(frame, integrator, center, maxstep, numstep, gravmodel, dragmo
     class(drag), intent(in), optional :: dragmodel
     class(model), intent(in), optional :: tbmodel
     type(event), dimension(:), intent(in), optional :: events
+    logical, intent(in), optional :: days
     type(ode) :: p
 
     type(uniformgravity) :: grav
@@ -143,6 +145,7 @@ function ode_init(frame, integrator, center, maxstep, numstep, gravmodel, dragmo
     if (present(dragmodel)) allocate(p%drag, source=dragmodel)
     if (present(tbmodel)) allocate(p%thirdbody, source=tbmodel)
     if (present(events)) p%events = events
+    if (present(days)) p%days = days
 end function ode_init
 
 subroutine rhs(n, t, y, f, tnk)
@@ -281,7 +284,11 @@ function state_propagator(s0, dt, p, err) result(s)
     class is (propagator)
         select type (dt)
         type is (real(dp))
-            s = p%state(s0, epochdelta(seconds=dt), err_)
+            if (p%days) then
+                s = p%state(s0, epochdelta(days=dt), err_)
+            else
+                s = p%state(s0, epochdelta(seconds=dt), err_)
+            end if
         type is (epochdelta)
             s = p%state(s0, dt, err_)
         end select
@@ -310,7 +317,11 @@ function trajectory_propagator(s0, dt, p, err) result(tra)
     class is (propagator)
         select type (dt)
         type is (real(dp))
-            tra = p%trajectory(s0, epochdelta(seconds=dt), err_)
+            if (p%days) then
+                tra = p%trajectory(s0, epochdelta(days=dt), err_)
+            else
+                tra = p%trajectory(s0, epochdelta(seconds=dt), err_)
+            end if
         type is (epochdelta)
             tra = p%trajectory(s0, dt, err_)
         end select
@@ -340,7 +351,7 @@ function ode_trajectory(p, s0, epd, err) result(tra)
     real(dp) :: t
     real(dp) :: tend
 
-    p%parameters = parameters(s0, p%frame, p%center)
+    p%parameters = parameters(s0, p%frame, p%center, p%days)
     allocate(p%parameters%trajectory, source=trajectory(s0))
     p_ => null()
     ! Gfortran workaround
@@ -352,7 +363,11 @@ function ode_trajectory(p, s0, epd, err) result(tra)
     tnk = c_loc(p_)
     rv = s0%rv
     t = 0._dp
-    tend = seconds(epd)
+    if (p%days) then
+        tend = days(epd)
+    else
+        tend = seconds(epd)
+    end if
     call integrate(p%integrator, rhs, rv, t, tend, tnk, maxstep=p%maxstep, err=err_, &
         solout=callback)
     if (iserror(err_)) then
@@ -382,7 +397,7 @@ function ode_state(p, s0, epd, err) result(s1)
     real(dp) :: t
     real(dp) :: tend
 
-    p%parameters = parameters(s0, p%frame, p%center)
+    p%parameters = parameters(s0, p%frame, p%center, p%days)
     p_ => null()
     ! Gfortran workaround
     select type (p)
@@ -393,7 +408,11 @@ function ode_state(p, s0, epd, err) result(s1)
     tnk = c_loc(p_)
     rv = s0%rv
     t = 0._dp
-    tend = seconds(epd)
+    if (p%days) then
+        tend = days(epd)
+    else
+        tend = seconds(epd)
+    end if
     call integrate(p%integrator, rhs, rv, t, tend, tnk, maxstep=p%maxstep, err=err_, &
         solout=callback)
     if (iserror(err_)) then
@@ -405,7 +424,11 @@ function ode_state(p, s0, epd, err) result(s1)
             call raise(err_)
         end if
     end if
-    s1 = state(s0%ep + epochdelta(seconds=t), rv, s0%frame, s0%center)
+    if (p%days) then
+        s1 = state(s0%ep + epochdelta(days=t), rv, s0%frame, s0%center)
+    else
+        s1 = state(s0%ep + epochdelta(seconds=t), rv, s0%frame, s0%center)
+    end if
 end function ode_state
 
 function kepler_trajectory(p, s0, epd, err) result(tra)
