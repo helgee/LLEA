@@ -163,7 +163,7 @@ subroutine thirdbody_update(this, f, t, y, p)
         do i = 1, size(this%bodies)
             mu = this%bodies(i)%mu
             rc3 = getposition(ephem, ep, from=p%center%id, to=this%bodies(i)%id)
-            rs3 = y(1:3) - rc3
+            rs3 = rc3 - y(1:3)
             f(4:6) = f(4:6) + mu * (rs3 / norm(rs3)**3 - rc3 / norm(rc3)**3)
         end do
     end if

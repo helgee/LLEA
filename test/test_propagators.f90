@@ -2,9 +2,11 @@ program testpropgators
 
 use assertions
 use constants
+use ephemerides, only: init_ephemeris
 use epochs
 use events
 use exceptions
+use forces, only: thirdbody
 use interfaces, only: getstate, gettrajectory
 use math, only: eps, pi, twopi, isapprox
 use propagators
@@ -35,6 +37,7 @@ type(trajectory) :: tra
 type(ode) :: o
 
 call init_constants
+call init_ephemeris
 
 ! Source: Vallado, Fundamentals of Astrodynamics and Applications, 4th edition, p. 94-95
 mu = 3.986004418e5_dp
@@ -111,5 +114,14 @@ o = ode(days=.true., maxstep=1._dp/seconds_per_day)
 s1d = getstate(s0, 1._dp, o)
 s1d%rv(4:6) = s1d%rv(4:6) / seconds_per_day
 call assert_almost_equal(s1ds%rv, s1d%rv, __LINE__, rtol=1e-5_dp)
+
+! Reference value from Orekit
+rv1exp = [-4219.7545636149_dp, 4363.0305735489_dp, -3958.767123328_dp, &
+    3.689863232_dp, -1.9167326384_dp, -6.1125111597_dp]
+ep = epoch(2020, 1, 1)
+s0 = state(ep, rv0exp)
+o = ode(maxstep=10._dp, tbmodel=thirdbody([moon, sun]))
+s1 = getstate(s0, dt, o)
+call assert_almost_equal(s1%rv, rv1exp, __LINE__)
 
 end program testpropgators
