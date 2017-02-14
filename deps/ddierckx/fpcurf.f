@@ -27,6 +27,7 @@ c  set constants
       con9 = 0.9d0
       con4 = 0.4d-01
       half = 0.5d0
+      nplus = 0
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 c  part 1: determination of the number of knots and their position     c
 c  **************************************************************      c
