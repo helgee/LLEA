@@ -35,6 +35,7 @@ module states
 use types, only: dp
 use bodies, only: body, iaumatrix
 use constants, only: earth
+use ephemerides, only: ephem, getstate
 use epochs, only: epoch
 use exceptions
 use math, only: pi, cross, isapprox, mod2pi, norm, twopi
@@ -67,7 +68,8 @@ end interface state
 
 private
 
-public :: state, rotate_inplace, rotate, cartesian, keplerian, state_from_elements, framelen, period
+public :: state, rotate_inplace, rotate, cartesian, keplerian, state_from_elements, framelen, &
+    period, wrt, wrt_inplace
 
 contains
 
@@ -150,6 +152,47 @@ function rotate(s, to, err) result(s1)
         end if
     end if
 end function rotate
+
+subroutine wrt_inplace(s, to, err)
+    type(state), intent(inout) :: s
+    type(body), intent(in) :: to
+    type(exception), intent(inout), optional :: err
+
+    type(exception) :: err_
+    real(dp), dimension(6) :: rv
+
+    rv = ephem%state(s%ep, to%id, s%center%id, err_)
+    if (iserror(err_)) then
+        call catch(err_, "wrt_inplace", __FILE__, __LINE__)
+        if (present(err)) then
+            err = err_
+            return
+        else
+            call raise(err_)
+        end if
+    end if
+    s%rv = s%rv - rv
+end subroutine wrt_inplace
+
+function wrt(s, to, err) result(s1)
+    type(state), intent(in) :: s
+    type(body), intent(in) :: to
+    type(exception), intent(inout), optional :: err
+
+    type(exception) :: err_
+    type(state) :: s1
+
+    s1 = s
+    call wrt_inplace(s1, to, err_)
+    if (iserror(err_)) then
+        call catch(err_, "wrt", __FILE__, __LINE__)
+        if (present(err)) then
+            err = err_
+        else
+            call raise(err_)
+        end if
+    end if
+end function wrt
 
 pure function keplerian_vectors(rv, mu) result(ele)
     real(dp), dimension(:), intent(in) :: rv
