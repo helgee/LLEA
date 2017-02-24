@@ -154,11 +154,7 @@ subroutine thirdbody_update(this, f, t, y, p)
     real(dp), dimension(3) :: rs3
     type(epoch) :: ep
 
-    if (p%days) then
-        ep = p%s0%ep + epochdelta(days=t)
-    else
-        ep = p%s0%ep + epochdelta(seconds=t)
-    end if
+    ep = p%s0%ep + epochdelta(seconds=t)
     if (allocated(this%bodies)) then
         do i = 1, size(this%bodies)
             mu = this%bodies(i)%mu

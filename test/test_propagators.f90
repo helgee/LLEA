@@ -6,7 +6,7 @@ use ephemerides, only: init_ephemeris
 use epochs
 use events
 use exceptions
-use forces, only: thirdbody
+use forces, only: thirdbody, j2gravity
 use interfaces, only: getstate, gettrajectory
 use math, only: eps, pi, twopi, isapprox
 use propagators
@@ -28,13 +28,12 @@ type(kepler) :: kep
 type(epoch) :: ep
 type(state) :: s0
 type(state) :: s1
-type(state) :: s1d
-type(state) :: s1ds
 type(state) :: se
 type(epochdelta) :: epd
 type(epochdelta) :: epd2
 type(trajectory) :: tra
 type(ode) :: o
+type(j2gravity) :: j2
 
 call init_constants
 call init_ephemeris
@@ -106,21 +105,21 @@ o = ode(maxstep=100._dp, events=[event(detect=apocenter(), numabort=2)])
 s1 = getstate(s0, period(s0)*3, o)
 call assert_equal(size(o%events(1)%tlog), 2, __LINE__)
 
-s0 = state(ep, [au, 0._dp, 0._dp, 0._dp, 30000._dp, 0._dp], center=sun)
-o = ode(maxstep=1._dp, center=sun)
-s1ds = getstate(s0, seconds_per_day, o)
-s0%rv(4:6) = s0%rv(4:6) * seconds_per_day
-o = ode(days=.true., maxstep=1._dp/seconds_per_day)
-s1d = getstate(s0, 1._dp, o)
-s1d%rv(4:6) = s1d%rv(4:6) / seconds_per_day
-call assert_almost_equal(s1ds%rv, s1d%rv, __LINE__, rtol=1e-5_dp)
-
 ! Reference value from Orekit
 rv1exp = [-4219.7545636149_dp, 4363.0305735489_dp, -3958.767123328_dp, &
     3.689863232_dp, -1.9167326384_dp, -6.1125111597_dp]
 ep = epoch(2020, 1, 1)
 s0 = state(ep, rv0exp)
 o = ode(maxstep=10._dp, tbmodel=thirdbody([moon, sun]))
+s1 = getstate(s0, dt, o)
+call assert_almost_equal(s1%rv, rv1exp, __LINE__)
+
+rv1exp = [-4255.223590627231_dp,4384.471704756651_dp,-3936.1350079623207_dp, &
+    3.6559899898490054_dp,-1.884445831960271_dp,-6.123308149589636_dp]
+ep = epoch(2000, 1, 1)
+s0 = state(ep, rv0exp)
+j2 = j2gravity()
+o = ode(maxstep=100._dp, gravmodel=j2)
 s1 = getstate(s0, dt, o)
 call assert_almost_equal(s1%rv, rv1exp, __LINE__)
 

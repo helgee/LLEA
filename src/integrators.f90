@@ -36,13 +36,15 @@ contains
 !   rtol - Relative tolerance (optional, default: 1e-6)
 !   atol - Absolute tolerance (optional, default: 1.48e-8)
 subroutine integrate(integrator, fcn, y, t, tend, tnk,&
-        solout, maxstep, rtol, atol, err)
+        solout, maxstep, nstiff, nsteps, rtol, atol, err)
     character(len=*), intent(in) :: integrator
     real(dp), dimension(:), intent(inout) :: y
     real(dp), intent(inout) :: t
     real(dp), intent(in) :: tend
     type(c_ptr), intent(in), optional :: tnk
     real(dp), intent(in), optional :: maxstep
+    integer, intent(in), optional :: nstiff
+    integer, intent(in), optional :: nsteps
     real(dp), dimension(:), intent(in), optional :: rtol
     real(dp), dimension(:), intent(in), optional :: atol
     type(exception), intent(inout), optional :: err
@@ -121,6 +123,8 @@ subroutine integrate(integrator, fcn, y, t, tend, tnk,&
         work = 0._dp
 
         if (present(maxstep)) work(6) = maxstep
+        if (present(nstiff)) iwork(4) = nstiff
+        if (present(nsteps)) iwork(1) = nsteps
 
         ! Do not print verbose error messages.
         iwork(3) = -1

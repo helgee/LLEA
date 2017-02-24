@@ -20,8 +20,8 @@ implicit none
 
 private
 
-public :: tranode, trajectory, len_dirty, add_node, isdirty, save_trajectory, getfield, state_trajectory, &
-    interpolate_scalar
+public :: tranode, trajectory, len_dirty, add_node, isdirty, save_trajectory, getfield, &
+    state_trajectory_epd, state_trajectory_dp, interpolate_scalar
 
 integer, parameter :: fieldlen = 12
 
@@ -200,6 +200,8 @@ function interpolate_scalar(tra, t, n, extrapolate, err) result(y)
     if (present(n)) then
         if (n < n_) n_ = n
     end if
+    allocate(y(n_))
+
     extrapolate_ = .false.
     if (present(extrapolate)) extrapolate_ = extrapolate
 
@@ -213,13 +215,40 @@ function interpolate_scalar(tra, t, n, extrapolate, err) result(y)
         end if
     end if
 
-    allocate(y(n_))
     do i = 1, n_
         y(i) = evaluate(tra%spl(i), t)
     end do
 end function interpolate_scalar
 
-function state_trajectory(tra, epd, extrapolate, err) result(s)
+function state_trajectory_dp(tra, t, extrapolate, err) result(s)
+    type(trajectory), intent(in) :: tra
+    real(dp), intent(in) :: t
+    logical, intent(in), optional :: extrapolate
+    type(exception), intent(inout), optional :: err
+    type(state) :: s
+
+    logical :: extrapolate_
+    type(exception) :: err_
+    real(dp), dimension(:), allocatable :: y
+    type(epochdelta) :: epd
+
+    extrapolate_ = .false.
+    if (present(extrapolate)) extrapolate_ = extrapolate
+
+    y = interpolate_scalar(tra, t, extrapolate=extrapolate_, err=err_)
+    if (iserror(err_)) then
+        call catch(err_, "state_trajectory", __FILE__, __LINE__)
+        if (present(err)) then
+            err = err_
+            return
+        else
+            call raise(err_)
+        end if
+    end if
+    s = state(tra%initial_state%ep + epochdelta(seconds=t), y, tra%initial_state%frame, tra%initial_state%center)
+end function state_trajectory_dp
+
+function state_trajectory_epd(tra, epd, extrapolate, err) result(s)
     type(trajectory), intent(in) :: tra
     type(epochdelta), intent(in) :: epd
     logical, intent(in), optional :: extrapolate
@@ -246,7 +275,7 @@ function state_trajectory(tra, epd, extrapolate, err) result(s)
         end if
     end if
     s = state(tra%initial_state%ep + epd, y, tra%initial_state%frame, tra%initial_state%center)
-end function state_trajectory
+end function state_trajectory_epd
 
 recursive subroutine delete_node(node)
     type(tranode), pointer :: node
