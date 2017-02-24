@@ -230,7 +230,6 @@ function state_trajectory_dp(tra, t, extrapolate, err) result(s)
     logical :: extrapolate_
     type(exception) :: err_
     real(dp), dimension(:), allocatable :: y
-    type(epochdelta) :: epd
 
     extrapolate_ = .false.
     if (present(extrapolate)) extrapolate_ = extrapolate
