@@ -919,9 +919,10 @@ function linspace(x1, xn, n) result(res)
 
     real(dp), dimension(n) :: res
 
-    do i = 1, n
+    do i = 1, n-1
         res(i) = x1 + (xn - x1) * real(i-1, dp) / real(n-1, dp)
     end do
+    res(size(res)) = xn
 end function linspace
 
 end module math
