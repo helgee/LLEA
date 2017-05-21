@@ -34,6 +34,9 @@ type(epochdelta) :: epd2
 type(trajectory) :: tra
 type(ode) :: o
 type(j2gravity) :: j2
+type(pericenter) :: peridetect
+type(apocenter) :: apodetect
+type(thirdbody) :: tbmodel
 
 call init_constants
 call init_ephemeris
@@ -83,25 +86,27 @@ call assert_almost_equal(tra%final_state%rv, rv1exp, __LINE__)
 s1 = getstate(tra, epd2)
 call assert_almost_equal(s1%rv, se%rv, __LINE__)
 
-o = ode(maxstep=100._dp, events=[event(detect=pericenter(), abort=.true.)])
+peridetect = pericenter()
+apodetect = apocenter()
+o = ode(maxstep=100._dp, events=[event(detect=peridetect, abort=.true.)])
 s1 = getstate(s0, 86400._dp, o)
 el = keplerian(s1)
 call assert(isapprox(el(6), 0._dp).or.isapprox(el(6), twopi), __LINE__)
 
-o = ode(maxstep=100._dp, events=[event(detect=apocenter(), abort=.true.)])
+o = ode(maxstep=100._dp, events=[event(detect=apodetect, abort=.true.)])
 s1 = getstate(s0, 86400._dp, o)
 el = keplerian(s1)
 call assert_almost_equal(el(6), pi, __LINE__)
 
-o = ode(maxstep=100._dp, events=[event(detect=pericenter())])
+o = ode(maxstep=100._dp, events=[event(detect=peridetect)])
 s1 = getstate(s0, period(s0)*3, o)
 call assert_equal(size(o%events(1)%tlog), 3, __LINE__)
 
-o = ode(maxstep=100._dp, events=[event(detect=apocenter())])
+o = ode(maxstep=100._dp, events=[event(detect=apodetect)])
 s1 = getstate(s0, period(s0)*3, o)
 call assert_equal(size(o%events(1)%tlog), 3, __LINE__)
 
-o = ode(maxstep=100._dp, events=[event(detect=apocenter(), numabort=2)])
+o = ode(maxstep=100._dp, events=[event(detect=apodetect, numabort=2)])
 s1 = getstate(s0, period(s0)*3, o)
 call assert_equal(size(o%events(1)%tlog), 2, __LINE__)
 
@@ -110,7 +115,8 @@ rv1exp = [-4219.7545636149_dp, 4363.0305735489_dp, -3958.767123328_dp, &
     3.689863232_dp, -1.9167326384_dp, -6.1125111597_dp]
 ep = epoch(2020, 1, 1)
 s0 = state(ep, rv0exp)
-o = ode(maxstep=10._dp, tbmodel=thirdbody([moon, sun]))
+tbmodel = thirdbody([moon, sun])
+o = ode(maxstep=10._dp, tbmodel=tbmodel)
 s1 = getstate(s0, dt, o)
 call assert_almost_equal(s1%rv, rv1exp, __LINE__)
 
