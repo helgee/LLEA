@@ -101,9 +101,9 @@ type, extends(propagator) :: ode
     real(dp) :: maxstep = 0._dp
     integer :: nsteps = 100000
     integer :: nstiff = 1000
-    class(gravity), allocatable :: gravity
-    class(drag), allocatable :: drag
-    class(model), allocatable :: thirdbody
+    class(gravity), pointer :: gravity => null()
+    class(drag), pointer :: drag => null()
+    class(model), pointer :: thirdbody => null()
     logical :: savetrajectory = .false.
     type(event), dimension(:), allocatable :: events
     type(parameters) :: parameters
@@ -125,13 +125,13 @@ function ode_init(frame, integrator, center, maxstep, nsteps, nstiff, gravmodel,
     real(dp), intent(in), optional :: maxstep
     integer, intent(in), optional :: nsteps
     integer, intent(in), optional :: nstiff
-    class(gravity), intent(in), optional :: gravmodel
-    class(drag), intent(in), optional :: dragmodel
-    class(model), intent(in), optional :: tbmodel
+    class(gravity), intent(in), optional, target :: gravmodel
+    class(drag), intent(in), optional, target :: dragmodel
+    class(model), intent(in), optional, target :: tbmodel
     type(event), dimension(:), intent(in), optional :: events
     type(ode) :: p
 
-    type(uniformgravity) :: grav
+    type(uniformgravity), target :: grav
 
     if (present(frame)) p%frame = frame
     if (present(integrator)) p%integrator = integrator
@@ -141,13 +141,12 @@ function ode_init(frame, integrator, center, maxstep, nsteps, nstiff, gravmodel,
     if (present(nsteps)) p%nsteps = nsteps
     if (present(nstiff)) p%nstiff = nstiff
     !grav = uniformgravity()
-    allocate(p%gravity, source=grav)
+    p%gravity => grav
     if (present(gravmodel)) then
-        deallocate(p%gravity)
-        allocate(p%gravity, source=gravmodel)
+        p%gravity => gravmodel
     end if
-    if (present(dragmodel)) allocate(p%drag, source=dragmodel)
-    if (present(tbmodel)) allocate(p%thirdbody, source=tbmodel)
+    if (present(dragmodel)) p%drag => dragmodel
+    if (present(tbmodel)) p%thirdbody => tbmodel
     if (present(events)) p%events = events
 end function ode_init
 
@@ -163,10 +162,10 @@ subroutine rhs(n, t, y, f, tnk)
 
     f = 0._dp
     call p%gravity%update(f, t, y, p%parameters)
-    if (allocated(p%thirdbody)) then
+    if (associated(p%thirdbody)) then
         call p%thirdbody%update(f, t, y, p%parameters)
     end if
-    if (allocated(p%drag)) then
+    if (associated(p%drag)) then
         call p%drag%update(f, t, y, p%parameters)
     end if
 end subroutine rhs
@@ -214,7 +213,7 @@ subroutine callback(nr, told, t, y, n, con, icomp,&
 
             passed = .false.
 
-            if (allocated(evt%det) .and. .not.firststep) then
+            if (associated(evt%det) .and. .not.firststep) then
                 ! Handle events with a detector
                 passed = evt%det%haspassed(t, told, p%parameters)
                 if (passed) then
@@ -244,7 +243,7 @@ subroutine callback(nr, told, t, y, n, con, icomp,&
                 return
             end if
 
-            if (allocated(evt%up)) then
+            if (associated(evt%up)) then
                 ! Activate the state vector updater for discontinuities
                 evt%done = .true.
                 yevt = densestate(tevt, n, con, icomp)
@@ -254,8 +253,10 @@ subroutine callback(nr, told, t, y, n, con, icomp,&
                 irtrn = altered
             else
                 ! Only log the time of normal events
-                if (allocated(evt%tlog) .and. .not.isin(tevt, evt%tlog)) then
-                    evt%tlog = [evt%tlog, tevt]
+                if (allocated(evt%tlog)) then
+                    if (.not.isin(tevt, evt%tlog)) then
+                        evt%tlog = [evt%tlog, tevt]
+                    end if
                 else
                     evt%tlog = [tevt]
                 end if

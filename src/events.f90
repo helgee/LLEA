@@ -38,8 +38,8 @@ type event
     integer :: numabort = -1
     real(dp), allocatable :: t
     real(dp), dimension(:), allocatable :: tlog
-    class(detector), allocatable :: det
-    class(updater), allocatable :: up
+    class(detector), pointer :: det => null()
+    class(updater), pointer :: up => null()
 end type event
 
 abstract interface
@@ -79,8 +79,8 @@ contains
 
 function event_init(t, detect, update, abort, numabort) result(evt)
     real(dp), intent(in), optional :: t
-    class(detector), intent(in), optional :: detect
-    class(updater), intent(in), optional :: update
+    class(detector), intent(in), optional, target :: detect
+    class(updater), intent(in), optional, target :: update
     logical, intent(in), optional :: abort
     integer, intent(in), optional :: numabort
     type(event) :: evt
@@ -94,8 +94,8 @@ function event_init(t, detect, update, abort, numabort) result(evt)
     end if
 
     if (present(t)) allocate(evt%t, source=t)
-    if (present(detect)) allocate(evt%det, source=detect)
-    if (present(update)) allocate(evt%up, source=update)
+    if (present(detect)) evt%det => detect
+    if (present(update)) evt%up => update
     if (present(abort)) evt%abort = abort
     if (present(numabort)) evt%numabort = numabort
 end function event_init

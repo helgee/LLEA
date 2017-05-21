@@ -6,7 +6,7 @@ use ephemerides, only: init_ephemeris
 use epochs
 use events
 use exceptions
-use forces, only: thirdbody, j2gravity
+use forces, only: thirdbody, j2gravity, uniformgravity
 use interfaces, only: getstate, gettrajectory
 use math, only: eps, pi, twopi, isapprox
 use propagators
@@ -37,6 +37,7 @@ type(j2gravity) :: j2
 type(pericenter) :: peridetect
 type(apocenter) :: apodetect
 type(thirdbody) :: tbmodel
+type(uniformgravity) :: grav
 real(dp) :: dtp
 
 call init_constants
