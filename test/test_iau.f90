@@ -22,7 +22,7 @@ real(dp) :: ddelta
 real(dp), dimension(3,3) :: iau
 
 call init_constants
-ep = epoch(2000, 1, 1, 12) + epochdelta(seconds=1000._dp)
+ep = epoch_(2000, 1, 1, 12) + epochdelta_(seconds=1000._dp)
 alpha = rightascension(moon, ep)
 call assert_almost_equal(alpha, 4.657546533178125_dp, __LINE__)
 dalpha = rightascensionrate(moon, ep)

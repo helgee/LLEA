@@ -52,7 +52,7 @@ implicit none
 
 private
 
-public :: spline1d, evaluate, knots, coeffs, residual
+public :: spline1d, evaluate, knots, coeffs, residual, spline1d_
 
 type spline1d
     real(dp), dimension(:), allocatable :: t
@@ -62,9 +62,9 @@ type spline1d
     real(dp) :: fp
 end type spline1d
 
-interface spline1d
+interface spline1d_
     module procedure init_spline1d
-end interface spline1d
+end interface spline1d_
 
 interface evaluate
     module procedure eval_1d_scalar

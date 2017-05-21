@@ -62,14 +62,14 @@ interface period
     module procedure period_state
 end interface period
 
-interface state
+interface state_
     module procedure init_state
-end interface state
+end interface state_
 
 private
 
 public :: state, rotate_inplace, rotate, cartesian, keplerian, state_from_elements, framelen, &
-    period, wrt, wrt_inplace
+    period, wrt, wrt_inplace, state_
 
 contains
 

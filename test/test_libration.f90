@@ -2,7 +2,7 @@ program testlibration
 
 use assertions
 use constants
-use epochs, only: epoch
+use epochs, only: epoch, epoch_
 use ephemerides, only: init_ephemeris
 use libration
 use types, only: dp
@@ -38,7 +38,7 @@ ref = [-1.1717170062386328_dp, -1.1212220608364672E-003_dp, 1.6674369835388907E-
     -1.6420893636515004_dp, -0.45661886467983320_dp, 0.68484198823320419_dp]
 rv = 1._dp
 rv(1:3) = rv(1:3) * 1000._dp
-ep = epoch(2000, 1, 1)
+ep = epoch_(2000, 1, 1)
 lib = gcrftolib(rv, ep, earth, moon, "L2")
 call assert_almost_equal(lib, ref, __LINE__)
 eci = libtogcrf(lib, ep, earth, moon, "L2")

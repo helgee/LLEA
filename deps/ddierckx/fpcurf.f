@@ -28,6 +28,8 @@ c  set constants
       con4 = 0.4d-01
       half = 0.5d0
       nplus = 0
+      fp0 = 0d0
+      fpold = 0d0
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 c  part 1: determination of the number of knots and their position     c
 c  **************************************************************      c

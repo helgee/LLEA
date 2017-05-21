@@ -24,9 +24,9 @@ type parameters
     integer, dimension(:), allocatable :: icomp
 end type parameters
 
-interface parameters
+interface parameters_
     module procedure parameters_init
-end interface parameters
+end interface parameters_
 
 contains
 

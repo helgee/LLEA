@@ -3,7 +3,7 @@ program testtrajectories
 use assertions
 use epochs, only: epoch
 use exceptions
-use states, only: state
+use states, only: state, state_
 use trajectories
 use types, only: dp
 
@@ -14,8 +14,8 @@ type(trajectory) :: tra
 type(state) :: s0
 real(dp), dimension(:), allocatable :: x
 
-s0 = state(epoch(), [0._dp])
-tra = trajectory(s0, ["x"])
+s0 = state_(epoch(), [0._dp])
+tra = trajectory_(s0, ["x"])
 
 call getfield(tra, "x", x, err)
 call assert_raises("Trajectory is empty.", err, __LINE__)

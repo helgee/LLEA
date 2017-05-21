@@ -104,9 +104,9 @@ contains
     procedure :: state_lowlevel => jplephem_state_lowlevel
 end type jplephem
 
-interface jplephem
+interface jplephem_
     module procedure new_jplephem
-end interface jplephem
+end interface jplephem_
 
 interface getposition
     module procedure getposition_jplephem_name
@@ -123,12 +123,13 @@ interface getstate
     module procedure getstate_jplephem_id
 end interface getstate
 
-class(ephemeris), allocatable :: ephem
+!class(ephemeris), allocatable :: ephem
+type(jplephem), allocatable :: ephem
 
 private
 
 public :: daf, jplephem, ephemeris, ephem, naifid, init_ephemeris, getpath, &
-    getposition, getvelocity, getstate
+    getposition, getvelocity, getstate, jplephem_
 
 contains
 
@@ -374,7 +375,7 @@ subroutine init_ephemeris(denum, path)
         if (present(denum)) denum_ = denum
         path_ = joinpath(projectdir("data"), "de"//denum_//".bsp")
     end if
-    allocate(ephem, source=jplephem(path_))
+    allocate(ephem, source=jplephem_(path_))
 end subroutine init_ephemeris
 
 function new_jplephem(path, err) result(eph)

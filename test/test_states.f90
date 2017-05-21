@@ -24,7 +24,7 @@ real(dp), dimension(6) :: elexp
 real(dp), dimension(6) :: rv
 real(dp), dimension(6) :: el
 
-ep = epoch(2000, 1, 1, 12) + epochdelta(seconds=1000._dp)
+ep = epoch_(2000, 1, 1, 12) + epochdelta_(seconds=1000._dp)
 call init_constants
 call init_ephemeris
 
@@ -425,8 +425,8 @@ call assert_almost_equal(el, elexp, __LINE__)
 rv = cartesian(el, mu)
 call assert_almost_equal(rv, rvexp, __LINE__)
 
-ep = epoch(2000, 1, 1)
-s = state(ep, [1000._dp, 1000._dp, 1000._dp, 1._dp, 0._dp, 0._dp])
+ep = epoch_(2000, 1, 1)
+s = state_(ep, [1000._dp, 1000._dp, 1000._dp, 1._dp, 0._dp, 0._dp])
 rvexp = [-2.3320498362289613e8_dp, 1.3379366576629393e8_dp, 6.365110638632974e7_dp, &
     -30.134836845536128_dp, -28.69614433942715_dp, -13.006923220167772_dp]
 s1 = wrt(s, mars)

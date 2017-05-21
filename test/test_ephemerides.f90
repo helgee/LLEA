@@ -22,7 +22,7 @@ real(dp), dimension(3) :: res3
 
 call init_ephemeris()
 
-ep = epoch(2000, 1, 1, 12)
+ep = epoch_(2000, 1, 1, 12)
 ref405 = [-2.0529325063213453e7_dp,-6.032395669044396e7_dp,-3.013084448833336e7_dp,37.00430439938116_dp,-8.541375986872962_dp,-8.398373128367817_dp]
 ref430 = [-2.052932489501512e7_dp,-6.0323956764362626e7_dp,-3.0130843855883405e7_dp,37.00430445042317_dp,-8.541376874554961_dp,-8.398372276759316_dp]
 
@@ -45,7 +45,7 @@ path = joinpath(projectdir("data"), "de430.bsp")
 d = daf(path)
 call assert_equal(d%id, "DAF/SPK", __LINE__)
 call assert_equal(d%endianness, "little_endian", __LINE__)
-eph = jplephem(path)
+eph = jplephem_(path)
 
 res3 = getposition(eph, ep, 1)
 call assert_almost_equal(res3, ref430(1:3), __LINE__)
@@ -73,7 +73,7 @@ path = joinpath(projectdir("data"), "de405.bsp")
 d = daf(path)
 call assert_equal(d%id, "NAIF/DAF", __LINE__)
 call assert_equal(d%endianness, "big_endian", __LINE__)
-eph = jplephem(path)
+eph = jplephem_(path)
 res6 = eph%state(ep, 1)
 call assert_almost_equal(res6, ref405, __LINE__)
 

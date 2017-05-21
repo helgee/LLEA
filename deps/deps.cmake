@@ -85,4 +85,4 @@ set(DIERCKX_SRC
     deps/ddierckx/surev.f
     deps/ddierckx/surfit.f)
 
-add_library(dierckx SHARED ${DIERCKX_SRC})
+add_library(dierckx ${DIERCKX_SRC})

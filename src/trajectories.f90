@@ -10,10 +10,10 @@
 !
 module trajectories
 
-use epochs, only: epochdelta, operator (+), seconds
+use epochs, only: epochdelta, operator (+), seconds, epochdelta_
 use exceptions
-use splines, only: spline1d, evaluate
-use states, only: state
+use splines, only: spline1d, evaluate, spline1d_
+use states, only: state, state_
 use types, only: dp
 
 implicit none
@@ -21,7 +21,7 @@ implicit none
 private
 
 public :: tranode, trajectory, len_dirty, add_node, isdirty, save_trajectory, getfield, &
-    state_trajectory_epd, state_trajectory_dp, interpolate_scalar
+    state_trajectory_epd, state_trajectory_dp, interpolate_scalar, trajectory_
 
 integer, parameter :: fieldlen = 12
 
@@ -46,10 +46,10 @@ interface tranode
     module procedure init_tranode
 end interface tranode
 
-interface trajectory
+interface trajectory_
     module procedure init_trajectory_array
     module procedure init_trajectory
-end interface trajectory
+end interface trajectory_
 
 contains
 
@@ -123,6 +123,7 @@ function init_trajectory_array(s0, t, arr, fields) result(tra)
     type(trajectory) :: tra
 
     integer :: n
+    type(epochdelta) :: epd
 
     n = size(t)
     call setfields(tra, ["x ", "y ", "z ", "vx", "vy", "vz"])
@@ -133,7 +134,8 @@ function init_trajectory_array(s0, t, arr, fields) result(tra)
     tra%initial_state = s0
     tra%y = arr
     tra%t = t
-    tra%final_state = state(s0%ep + epochdelta(seconds=t(n)), arr(:,n), s0%frame, s0%center)
+    epd = epochdelta_(seconds=t(n))
+    tra%final_state = state_(s0%ep + epd, arr(:,n), s0%frame, s0%center)
     call generate_splines(tra)
 end function init_trajectory_array
 
@@ -164,7 +166,7 @@ subroutine save_trajectory(tra)
         current => current%next
     end do
     call delete_node(tra%head)
-    tra%final_state = state(tra%initial_state%ep + epochdelta(seconds=tra%t(n)), tra%y(:,n), &
+    tra%final_state = state(tra%initial_state%ep + epochdelta_(seconds=tra%t(n)), tra%y(:,n), &
         tra%initial_state%frame, tra%initial_state%center)
     call generate_splines(tra)
 end subroutine save_trajectory
@@ -179,7 +181,7 @@ subroutine generate_splines(tra)
     allocate(tra%spl(n))
 
     do i = 1, n
-        tra%spl(i) = spline1d(tra%t, tra%y(i,:), bc="extrapolate")
+        tra%spl(i) = spline1d_(tra%t, tra%y(i,:), bc="extrapolate")
     end do
 end subroutine generate_splines
 
@@ -244,7 +246,7 @@ function state_trajectory_dp(tra, t, extrapolate, err) result(s)
             call raise(err_)
         end if
     end if
-    s = state(tra%initial_state%ep + epochdelta(seconds=t), y, tra%initial_state%frame, tra%initial_state%center)
+    s = state(tra%initial_state%ep + epochdelta_(seconds=t), y, tra%initial_state%frame, tra%initial_state%center)
 end function state_trajectory_dp
 
 function state_trajectory_epd(tra, epd, extrapolate, err) result(s)

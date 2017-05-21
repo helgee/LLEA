@@ -50,7 +50,7 @@ implicit none
 private
 
 public :: pih, pi, twopi, deg, rad, &
-    eps, cross, unitmat, mod2pi, &
+    eps, cross, mod2pi, &
     vecang, polcart, cartpol, norm, &
     getsign, binsearch, linspace, &
     interp, findroot, isapprox, &
@@ -276,16 +276,16 @@ end function cross
 !
 ! Returns:
 !   unity - Unity matrix of rank n
-pure function unitmat(n) result(unity)
-    integer, intent(in) :: n
-    real(dp) :: unity(n, n)
-    integer :: i
-    unity = 0._dp
-    do i = 1, n
-        unity(i,i) = 1
-    end do
-end function unitmat
-
+!pure function unitmat(n) result(unity)
+!    integer, intent(in) :: n
+!    real(dp) :: unity(n, n)
+!    integer :: i
+!    unity = 0._dp
+!    do i = 1, n
+!        unity(i,i) = 1
+!    end do
+!end function unitmat
+!
 ! Function: mod2pi
 !   Truncates angle to be within 0 and 2*pi.
 !

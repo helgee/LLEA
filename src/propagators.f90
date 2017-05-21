@@ -35,23 +35,23 @@ module propagators
 use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_loc
 use bodies, only: body
 use constants, only: earth
-use containers, only: parameters
+use containers, only: parameters, parameters_
 use dopri, only: densestate
-use epochs, only: epochdelta, seconds, operator (+)
+use epochs, only: epochdelta, seconds, operator (+), epochdelta_
 use events, only: findevent, event
 use exceptions
 use forces, only: model, gravity, drag, thirdbody, uniformgravity
 use integrators, only: integrate
 use math, only: eps, isapprox, norm, pih, cross, cot, linspace, isin
 use states, only: state, framelen
-use trajectories, only: trajectory, add_node, save_trajectory
+use trajectories, only: trajectory, add_node, save_trajectory, trajectory_
 use types, only: dp
 
 implicit none
 
 private
 
-public :: kepler, solve_kepler, state_propagator, trajectory_propagator, ode
+public :: kepler, solve_kepler, state_propagator, trajectory_propagator, ode, kepler_, ode_
 
 type, abstract :: propagator
 contains
@@ -90,9 +90,9 @@ contains
     procedure :: state => kepler_state
 end type kepler
 
-interface kepler
+interface kepler_
     module procedure kepler_init
-end interface kepler
+end interface kepler_
 
 type, extends(propagator) :: ode
     character(len=framelen) :: frame = "GCRF"
@@ -112,9 +112,9 @@ contains
     procedure :: state => ode_state
 end type ode
 
-interface ode
-    module procedure :: ode_init
-end interface ode
+interface ode_
+    module procedure ode_init
+end interface ode_
 
 contains
 
@@ -140,7 +140,7 @@ function ode_init(frame, integrator, center, maxstep, nsteps, nstiff, gravmodel,
     if (present(maxstep)) p%maxstep = maxstep
     if (present(nsteps)) p%nsteps = nsteps
     if (present(nstiff)) p%nstiff = nstiff
-    grav = uniformgravity()
+    !grav = uniformgravity()
     allocate(p%gravity, source=grav)
     if (present(gravmodel)) then
         deallocate(p%gravity)
@@ -293,7 +293,7 @@ function state_propagator(s0, dt, p, err) result(s)
     class is (propagator)
         select type (dt)
         type is (real(dp))
-            s = p%state(s0, epochdelta(seconds=dt), err_)
+            s = p%state(s0, epochdelta_(seconds=dt), err_)
         type is (epochdelta)
             s = p%state(s0, dt, err_)
         end select
@@ -322,7 +322,7 @@ function trajectory_propagator(s0, dt, p, err) result(tra)
     class is (propagator)
         select type (dt)
         type is (real(dp))
-            tra = p%trajectory(s0, epochdelta(seconds=dt), err_)
+            tra = p%trajectory(s0, epochdelta_(seconds=dt), err_)
         type is (epochdelta)
             tra = p%trajectory(s0, dt, err_)
         end select
@@ -352,8 +352,8 @@ function ode_trajectory(p, s0, epd, err) result(tra)
     real(dp) :: t
     real(dp) :: tend
 
-    p%parameters = parameters(s0, p%frame, p%center)
-    allocate(p%parameters%trajectory, source=trajectory(s0))
+    p%parameters = parameters_(s0, p%frame, p%center)
+    allocate(p%parameters%trajectory, source=trajectory_(s0))
     p_ => null()
     ! Gfortran workaround
     select type (p)
@@ -394,7 +394,7 @@ function ode_state(p, s0, epd, err) result(s1)
     real(dp) :: t
     real(dp) :: tend
 
-    p%parameters = parameters(s0, p%frame, p%center)
+    p%parameters = parameters_(s0, p%frame, p%center)
     p_ => null()
     ! Gfortran workaround
     select type (p)
@@ -417,7 +417,7 @@ function ode_state(p, s0, epd, err) result(s1)
             call raise(err_)
         end if
     end if
-    s1 = state(s0%ep + epochdelta(seconds=t), rv, s0%frame, s0%center)
+    s1 = state(s0%ep + epochdelta_(seconds=t), rv, s0%frame, s0%center)
 end function ode_state
 
 function kepler_trajectory(p, s0, epd, err) result(tra)
@@ -447,7 +447,7 @@ function kepler_trajectory(p, s0, epd, err) result(tra)
             end if
         end if
     end do
-    tra = trajectory(s0, times, vectors)
+    tra = trajectory_(s0, times, vectors)
 end function kepler_trajectory
 
 function kepler_state(p, s0, epd, err) result(s1)

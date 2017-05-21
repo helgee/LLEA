@@ -15,7 +15,7 @@ private
 
 public :: epoch, epochdelta, juliandate, jd2000, &
     operator (+), operator (-), seconds_per_day, mjd2000, days, seconds, calendardate, isostring, &
-    datetime, to_datetime, days_per_century, seconds_per_century, centuries
+    datetime, to_datetime, days_per_century, seconds_per_century, centuries, epoch_, epochdelta_
 
 real(dp), parameter :: seconds_per_day = 86400._dp
 real(dp), parameter :: days_per_century = 36525._dp
@@ -37,15 +37,15 @@ type epoch
     real(dp) :: jd1 = 0._dp
 end type epoch
 
-interface epoch
+interface epoch_
     module procedure new_epoch_dummy
     module procedure new_epoch_init
     module procedure new_epoch_calendar
-end interface epoch
+end interface epoch_
 
-interface epochdelta
+interface epochdelta_
     module procedure new_epochdelta
-end interface epochdelta
+end interface epochdelta_
 
 type epochdelta
     real(dp) :: deltajd = 0._dp

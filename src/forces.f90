@@ -10,7 +10,7 @@ module forces
 use bodies, only: body
 use containers, only: parameters
 use ephemerides, only: ephem, getposition
-use epochs, only: epoch, epochdelta, operator(+)
+use epochs, only: epoch, epochdelta, operator(+), epochdelta_
 use math, only: norm
 use states, only: state
 use types, only: dp
@@ -154,7 +154,7 @@ subroutine thirdbody_update(this, f, t, y, p)
     real(dp), dimension(3) :: rs3
     type(epoch) :: ep
 
-    ep = p%s0%ep + epochdelta(seconds=t)
+    ep = p%s0%ep + epochdelta_(seconds=t)
     if (allocated(this%bodies)) then
         do i = 1, size(this%bodies)
             mu = this%bodies(i)%mu
