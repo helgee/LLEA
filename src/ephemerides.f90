@@ -477,6 +477,7 @@ subroutine coefficients(eph, segnum, tdb, tdb2, x, twotc, err)
     integer :: i
     integer :: u
     real(dp), dimension(:), allocatable :: c
+    real(dp), dimension(:,:), allocatable :: tmp
 
     seg => eph%segments(segnum)
     if ((tdb + tdb2 < seg%firstdate).or.(tdb + tdb2 > seg%lastdate)) then
@@ -508,7 +509,10 @@ subroutine coefficients(eph, segnum, tdb, tdb2, x, twotc, err)
         close(u)
         if (allocated(seg%cache)) deallocate(seg%cache)
         allocate(seg%cache(components, order))
-        seg%cache = transpose(reshape(c, [order, components]))
+        if (allocated(tmp)) deallocate(tmp)
+        allocate(tmp(order, components))
+        tmp = reshape(c, [order, components])
+        seg%cache = transpose(tmp)
         seg%cachedrecord = recordnum
     end if
     allocate(x(order))
