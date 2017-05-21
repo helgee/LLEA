@@ -86,13 +86,13 @@ end interface residual
 interface
     subroutine splev(t, n, c, k, x, y, m, e, ier)
         import :: dp
-        real(dp), dimension(n), intent(in) :: t
         integer, intent(in) :: n
+        integer, intent(in) :: m
+        real(dp), dimension(n), intent(in) :: t
         real(dp), dimension(n), intent(in) :: c
         integer, intent(in) :: k
         real(dp), dimension(m), intent(in) :: x
         real(dp), dimension(m), intent(out) :: y
-        integer, intent(in) :: m
         integer, intent(in) :: e
         integer, intent(out) :: ier
     end subroutine splev
@@ -111,6 +111,7 @@ function init_spline1d(x, y, w, k, s, bc, err) result(spl)
     type(spline1d) :: spl
 
     character(len=11) :: bc_
+    integer :: bccode
     integer :: ier
     integer :: k_
     integer :: lwrk
@@ -175,7 +176,8 @@ function init_spline1d(x, y, w, k, s, bc, err) result(spl)
     ! Resize output arrays
     call resize(t, n)
     call resize(c, n-k_-1)
-    spl = spline1d(t, c, k_, translate_bc(bc_, err_), fp)
+    bccode = translate_bc(bc_, err_)
+    spl = spline1d(t, c, k_, bccode, fp)
     if (iserror(err_)) then
         call catch(err_, "init_spline1d", __FILE__, __LINE__)
         if (present(err)) then
