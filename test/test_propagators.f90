@@ -59,6 +59,7 @@ rv1 = solve_kepler(mu, rv0exp, dt, iterations=1, err=err)
 call assert_raises("Kepler solver did not converge.", err, __LINE__)
 call reset(err)
 
+kep = kepler_()
 ep = epoch_()
 s0 = state_(ep, rv0exp)
 s1 = getstate(s0, dt, kep)

@@ -166,7 +166,7 @@ subroutine save_trajectory(tra)
         current => current%next
     end do
     call delete_node(tra%head)
-    tra%final_state = state(tra%initial_state%ep + epochdelta_(seconds=tra%t(n)), tra%y(:,n), &
+    tra%final_state = state_(tra%initial_state%ep + epochdelta_(seconds=tra%t(n)), tra%y(:,n), &
         tra%initial_state%frame, tra%initial_state%center)
     call generate_splines(tra)
 end subroutine save_trajectory
@@ -246,7 +246,7 @@ function state_trajectory_dp(tra, t, extrapolate, err) result(s)
             call raise(err_)
         end if
     end if
-    s = state(tra%initial_state%ep + epochdelta_(seconds=t), y, tra%initial_state%frame, tra%initial_state%center)
+    s = state_(tra%initial_state%ep + epochdelta_(seconds=t), y, tra%initial_state%frame, tra%initial_state%center)
 end function state_trajectory_dp
 
 function state_trajectory_epd(tra, epd, extrapolate, err) result(s)
@@ -275,7 +275,7 @@ function state_trajectory_epd(tra, epd, extrapolate, err) result(s)
             call raise(err_)
         end if
     end if
-    s = state(tra%initial_state%ep + epd, y, tra%initial_state%frame, tra%initial_state%center)
+    s = state_(tra%initial_state%ep + epd, y, tra%initial_state%frame, tra%initial_state%center)
 end function state_trajectory_epd
 
 recursive subroutine delete_node(node)

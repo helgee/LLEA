@@ -76,17 +76,26 @@ subroutine catch(err, func, file, line)
     character(len=*), intent(in) :: file
     integer, intent(in) :: line
 
+    character(len=flen), dimension(:), allocatable :: tmp_func
+    character(len=filelen), dimension(:), allocatable :: tmp_file
+    integer, dimension(:), allocatable :: tmp_line
+
+    call move_alloc(err%func, tmp_func)
     if (len(func) < flen) then
-        err%func = [func // repeat(" ", flen - len(func)), err%func]
+        err%func = [func // repeat(" ", flen - len(func)), tmp_func]
     else
-        err%func = [func(1:flen), err%func]
+        err%func = [func(1:flen), tmp_func]
     end if
+
+    call move_alloc(err%file, tmp_file)
     if (len(file) < filelen) then
-        err%file = [file // repeat(" ", filelen - len(file)), err%file]
+        err%file = [file // repeat(" ", filelen - len(file)), tmp_file]
     else
-        err%file = [file(1:filelen), err%file]
+        err%file = [file(1:filelen), tmp_file]
     end if
-    err%line = [line, err%line]
+
+    call move_alloc(err%line, tmp_line)
+    err%line = [line, tmp_line]
 end subroutine catch
 
 subroutine raise(err)

@@ -16,10 +16,10 @@ implicit none
 
 type parameters
     type(state) :: s0
-    type(trajectory), allocatable :: trajectory
     character(len=framelen) :: frame
     type(body) :: center
     integer :: nd
+    type(trajectory), allocatable :: trajectory
     real(dp), dimension(:), allocatable :: con
     integer, dimension(:), allocatable :: icomp
 end type parameters

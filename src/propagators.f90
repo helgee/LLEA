@@ -43,7 +43,7 @@ use exceptions
 use forces, only: model, gravity, drag, thirdbody, uniformgravity
 use integrators, only: integrate
 use math, only: eps, isapprox, norm, pih, cross, cot, linspace, isin
-use states, only: state, framelen
+use states, only: state, framelen, state_
 use trajectories, only: trajectory, add_node, save_trajectory, trajectory_
 use types, only: dp
 
@@ -116,6 +116,8 @@ interface ode_
     module procedure ode_init
 end interface ode_
 
+type(uniformgravity), target :: grav
+
 contains
 
 function ode_init(frame, integrator, center, maxstep, nsteps, nstiff, gravmodel, dragmodel, tbmodel, events) result(p)
@@ -130,8 +132,6 @@ function ode_init(frame, integrator, center, maxstep, nsteps, nstiff, gravmodel,
     class(model), intent(in), optional, target :: tbmodel
     type(event), dimension(:), intent(in), optional :: events
     type(ode) :: p
-
-    type(uniformgravity), target :: grav
 
     if (present(frame)) p%frame = frame
     if (present(integrator)) p%integrator = integrator
@@ -285,7 +285,7 @@ function state_propagator(s0, dt, p, err) result(s)
     type(state), intent(in) :: s0
     class(*), intent(in) :: dt
     class(propagator), intent(inout) :: p
-    type(exception), intent(out), optional :: err
+    type(exception), intent(inout), optional :: err
     type(state) :: s
 
     type(exception) :: err_
@@ -418,7 +418,7 @@ function ode_state(p, s0, epd, err) result(s1)
             call raise(err_)
         end if
     end if
-    s1 = state(s0%ep + epochdelta_(seconds=t), rv, s0%frame, s0%center)
+    s1 = state_(s0%ep + epochdelta_(seconds=t), rv, s0%frame, s0%center)
 end function ode_state
 
 function kepler_trajectory(p, s0, epd, err) result(tra)
@@ -471,7 +471,7 @@ function kepler_state(p, s0, epd, err) result(s1)
             call raise(err_)
         end if
     end if
-    s1 = state(s0%ep + epd, rv1, s0%frame, s0%center)
+    s1 = state_(s0%ep + epd, rv1, s0%frame, s0%center)
 end function kepler_state
 
 function kepler_init(iterations, points, rtol) result(kep)
